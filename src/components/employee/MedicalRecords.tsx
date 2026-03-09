@@ -33,7 +33,7 @@ export const MedicalRecords = () => {
 
                         <div className="space-y-5">
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 shadow-sm">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 shadow-sm">
                                     <Thermometer size={24} />
                                 </div>
                                 <div>
@@ -46,7 +46,7 @@ export const MedicalRecords = () => {
                             </div>
 
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-red-500 shadow-sm">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-red-50 flex items-center justify-center text-red-500 shadow-sm">
                                     <Droplets size={24} />
                                 </div>
                                 <div>

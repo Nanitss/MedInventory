@@ -14,12 +14,12 @@ export const EmployeeRecordsTab = () => {
 
     return (
         <div className="space-y-4 animate-in fade-in duration-300">
-            <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <div>
                     <h3 className="text-lg font-bold text-slate-800">Employee Records</h3>
                     <p className="text-sm text-slate-500">Manage employee health vitals and medical history</p>
                 </div>
-                <Button onClick={() => setIsModalOpen(true)} className="gap-2 bg-brand-blue hover:bg-brand-blue-dark">
+                <Button onClick={() => setIsModalOpen(true)} className="gap-2 bg-brand-blue hover:bg-brand-blue-dark w-full sm:w-auto">
                     <PlusCircle size={18} />
                     Add Record
                 </Button>
@@ -27,13 +27,13 @@ export const EmployeeRecordsTab = () => {
 
             <Card className="p-0 border mt-4">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse min-w-[500px]">
                         <thead>
                             <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-600 text-sm">
-                                <th className="py-4 px-6 font-semibold">Date</th>
-                                <th className="py-4 px-6 font-semibold">Employee Name</th>
-                                <th className="py-4 px-6 font-semibold">Temperature</th>
-                                <th className="py-4 px-6 font-semibold">Blood Pressure</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Date</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Employee Name</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Temperature</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Blood Pressure</th>
                             </tr>
                         </thead>
                         <tbody>

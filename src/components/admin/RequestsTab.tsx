@@ -23,14 +23,14 @@ export const RequestsTab = () => {
 
             <Card className="p-0 border mt-4">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse min-w-[650px]">
                         <thead>
                             <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-600 text-sm">
-                                <th className="py-4 px-6 font-semibold">Employee Name</th>
-                                <th className="py-4 px-6 font-semibold">Medicine Requested</th>
-                                <th className="py-4 px-6 font-semibold">Request Date</th>
-                                <th className="py-4 px-6 font-semibold">Status</th>
-                                <th className="py-4 px-6 font-semibold text-right">Actions</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Employee Name</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Medicine Requested</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Request Date</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Status</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody>

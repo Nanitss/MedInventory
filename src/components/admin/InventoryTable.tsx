@@ -24,12 +24,12 @@ export const InventoryTable = () => {
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <div>
                     <h3 className="text-lg font-bold text-slate-800">Current Stock</h3>
                     <p className="text-sm text-slate-500">View and manage the medicine inventory</p>
                 </div>
-                <Button onClick={() => setIsModalOpen(true)} className="gap-2">
+                <Button onClick={() => setIsModalOpen(true)} className="gap-2 w-full sm:w-auto">
                     <PlusCircle size={18} />
                     Add Medicine
                 </Button>
@@ -49,16 +49,16 @@ export const InventoryTable = () => {
 
             <Card className="p-0 border mt-4">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse min-w-[700px]">
                         <thead>
                             <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-600 text-sm">
-                                <th className="py-4 px-6 font-semibold">Scientific Name</th>
-                                <th className="py-4 px-6 font-semibold">Brand</th>
-                                <th className="py-4 px-6 font-semibold">Details</th>
-                                <th className="py-4 px-6 font-semibold">Illness/Use</th>
-                                <th className="py-4 px-6 font-semibold">Added Date</th>
-                                <th className="py-4 px-6 font-semibold">Expiry Date</th>
-                                <th className="py-4 px-6 font-semibold text-right">Qty</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Scientific Name</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Brand</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Details</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Illness/Use</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Added Date</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Expiry Date</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold text-right">Qty</th>
                             </tr>
                         </thead>
                         <tbody>

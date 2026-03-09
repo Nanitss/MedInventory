@@ -14,25 +14,25 @@ export const AdminDashboard = () => {
                     <h2 className="text-2xl font-extrabold text-slate-800 tracking-tight">Admin Dashboard</h2>
                     <p className="text-sm text-slate-500">Manage medicine inventory and employee requests</p>
                 </div>
-                <div className="flex bg-slate-100 p-1 rounded-lg">
+                <div className="flex bg-slate-100 p-1 rounded-lg overflow-x-auto">
                     <Button
                         variant={activeTab === 'inventory' ? 'primary' : 'ghost'}
                         onClick={() => setActiveTab('inventory')}
-                        className={activeTab === 'inventory' ? 'shadow-sm' : 'text-slate-600'}
+                        className={`whitespace-nowrap text-xs sm:text-sm ${activeTab === 'inventory' ? 'shadow-sm' : 'text-slate-600'}`}
                     >
                         Medicine Inventory
                     </Button>
                     <Button
                         variant={activeTab === 'requests' ? 'primary' : 'ghost'}
                         onClick={() => setActiveTab('requests')}
-                        className={activeTab === 'requests' ? 'shadow-sm' : 'text-slate-600'}
+                        className={`whitespace-nowrap text-xs sm:text-sm ${activeTab === 'requests' ? 'shadow-sm' : 'text-slate-600'}`}
                     >
                         Employee Requests
                     </Button>
                     <Button
                         variant={activeTab === 'records' ? 'primary' : 'ghost'}
                         onClick={() => setActiveTab('records')}
-                        className={activeTab === 'records' ? 'shadow-sm' : 'text-slate-600'}
+                        className={`whitespace-nowrap text-xs sm:text-sm ${activeTab === 'records' ? 'shadow-sm' : 'text-slate-600'}`}
                     >
                         Employee Records
                     </Button>

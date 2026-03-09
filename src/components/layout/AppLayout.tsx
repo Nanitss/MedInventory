@@ -14,11 +14,11 @@ export const AppLayout = ({ children, userRole, onRoleSwitch }: AppLayoutProps) 
             <header className="bg-brand-blue border-b border-brand-blue-dark shadow-md sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg bg-brand-yellow flex items-center justify-center text-brand-blue-dark shadow-sm">
-                            <HeartPulse size={28} strokeWidth={2.5} />
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-brand-yellow flex items-center justify-center text-brand-blue-dark shadow-sm">
+                            <HeartPulse size={24} strokeWidth={2.5} />
                         </div>
                         <div className="flex flex-col">
-                            <h1 className="text-xl font-bold text-white tracking-tight leading-tight">
+                            <h1 className="text-base sm:text-xl font-bold text-white tracking-tight leading-tight">
                                 Baliwag Water District
                             </h1>
                             <p className="text-sm text-brand-yellow-200 font-medium tracking-wide">
