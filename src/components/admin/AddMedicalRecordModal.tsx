@@ -14,7 +14,10 @@ export const AddMedicalRecordModal = ({ isOpen, onClose }: Props) => {
         employeeName: '',
         temperature: '',
         systolic: '',
-        diastolic: ''
+        diastolic: '',
+        pulseRate: '',
+        remarks: '',
+        medicineGiven: ''
     });
 
     if (!isOpen) return null;
@@ -25,13 +28,19 @@ export const AddMedicalRecordModal = ({ isOpen, onClose }: Props) => {
             employeeName: formData.employeeName,
             temperature: Number(formData.temperature),
             systolic: Number(formData.systolic),
-            diastolic: Number(formData.diastolic)
+            diastolic: Number(formData.diastolic),
+            pulseRate: formData.pulseRate,
+            remarks: formData.remarks,
+            medicineGiven: formData.medicineGiven
         });
         setFormData({
             employeeName: '',
             temperature: '',
             systolic: '',
-            diastolic: ''
+            diastolic: '',
+            pulseRate: '',
+            remarks: '',
+            medicineGiven: ''
         });
         onClose();
     };
@@ -63,18 +72,32 @@ export const AddMedicalRecordModal = ({ isOpen, onClose }: Props) => {
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1">Temperature (°C)</label>
-                        <input
-                            required
-                            type="number"
-                            step="0.1"
-                            name="temperature"
-                            value={formData.temperature}
-                            onChange={handleChange}
-                            className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition-all"
-                            placeholder="e.g. 36.5"
-                        />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1">Temperature (°C)</label>
+                            <input
+                                required
+                                type="number"
+                                step="0.1"
+                                name="temperature"
+                                value={formData.temperature}
+                                onChange={handleChange}
+                                className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition-all"
+                                placeholder="e.g. 36.5"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1">Pulse Rate (bpm)</label>
+                            <input
+                                required
+                                type="number"
+                                name="pulseRate"
+                                value={formData.pulseRate}
+                                onChange={handleChange}
+                                className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition-all"
+                                placeholder="e.g. 75"
+                            />
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -100,6 +123,33 @@ export const AddMedicalRecordModal = ({ isOpen, onClose }: Props) => {
                                 onChange={handleChange}
                                 className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition-all"
                                 placeholder="e.g. 80"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1">Remarks / Symptoms</label>
+                            <textarea
+                                required
+                                name="remarks"
+                                value={formData.remarks}
+                                onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
+                                className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition-all resize-none h-full"
+                                placeholder="..."
+                                rows={2}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1">Medicine Given</label>
+                            <textarea
+                                required
+                                name="medicineGiven"
+                                value={formData.medicineGiven}
+                                onChange={(e) => setFormData({ ...formData, medicineGiven: e.target.value })}
+                                className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition-all resize-none h-full"
+                                placeholder="e.g. Paracetamol"
+                                rows={2}
                             />
                         </div>
                     </div>

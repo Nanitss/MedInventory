@@ -28,6 +28,18 @@ export interface MedicalRecord {
     temperature: number; // Celsius
     systolic: number;
     diastolic: number;
+    pulseRate: string;
+    remarks: string;
+    medicineGiven: string;
+}
+
+export interface Employee {
+    id: string;
+    name: string;
+    contactNumber: string;
+    address: string;
+    gender: 'Male' | 'Female' | 'Other';
+    age: number;
 }
 
 // Mock initial employee context

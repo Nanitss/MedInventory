@@ -1,24 +1,75 @@
-
+import { useState } from 'react';
 import { useAppContext } from '../../lib/context';
 import { Button, Card, Badge } from '../ui/primitives';
 import { format } from 'date-fns';
-import { Check, X } from 'lucide-react';
+import { Check, X, FileDown, Filter } from 'lucide-react';
+import { FilterModal } from '../ui/FilterModal';
+import { exportToPdf } from '../../utils/exportPdf';
 
 export const RequestsTab = () => {
     const { requests, approveRequest, rejectRequest, inventory } = useAppContext();
 
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [filterQuery, setFilterQuery] = useState('');
+
     // Sort requests: Pending first, then by date (newest first)
-    const sortedRequests = [...requests].sort((a, b) => {
-        if (a.status === 'Pending' && b.status !== 'Pending') return -1;
-        if (a.status !== 'Pending' && b.status === 'Pending') return 1;
-        return new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime();
-    });
+    const sortedRequests = [...requests]
+        .filter(req => {
+            if (!filterQuery) return true;
+            const q = filterQuery.toLowerCase();
+            return (
+                req.employeeName.toLowerCase().includes(q) ||
+                req.medicineRequested.toLowerCase().includes(q) ||
+                req.status.toLowerCase().includes(q) ||
+                (req.reason && req.reason.toLowerCase().includes(q))
+            );
+        })
+        .sort((a, b) => {
+            if (a.status === 'Pending' && b.status !== 'Pending') return -1;
+            if (a.status !== 'Pending' && b.status === 'Pending') return 1;
+            return new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime();
+        });
+
+    const handleExportPdf = () => {
+        const headers = ['Employee Name', 'Medicine Requested', 'Reason / Symptoms', 'Request Date', 'Status'];
+        const data = sortedRequests.map(req => [
+            req.employeeName,
+            req.medicineRequested,
+            req.reason || 'N/A',
+            format(new Date(req.requestDate), 'MMM dd, yyyy h:mm a'),
+            req.status
+        ]);
+
+        exportToPdf({
+            title: 'Employee Medicine Requests Report',
+            headers,
+            data,
+            filename: 'requests_report'
+        });
+    };
 
     return (
         <div className="space-y-4">
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <h3 className="text-lg font-bold text-slate-800">Employee Requests</h3>
-                <p className="text-sm text-slate-500">Review and manage medicine requests from employees</p>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div>
+                    <h3 className="text-lg font-bold text-slate-800">Employee Requests</h3>
+                    <p className="text-sm text-slate-500 flex items-center gap-2">
+                        Review and manage medicine requests from employees
+                        {filterQuery && (
+                            <Badge variant="default" className="ml-2 font-normal text-[10px] py-0">
+                                Filtered: "{filterQuery}"
+                            </Badge>
+                        )}
+                    </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <Button variant="outline" onClick={() => setIsFilterOpen(true)} className="gap-2 w-full sm:w-auto text-slate-600">
+                        <Filter size={16} /> Filter
+                    </Button>
+                    <Button variant="outline" onClick={handleExportPdf} className="gap-2 w-full sm:w-auto text-slate-600">
+                        <FileDown size={16} /> Export PDF
+                    </Button>
+                </div>
             </div>
 
             <Card className="p-0 border mt-4">
@@ -107,6 +158,14 @@ export const RequestsTab = () => {
                     </table>
                 </div>
             </Card>
+
+            <FilterModal
+                isOpen={isFilterOpen}
+                onClose={() => setIsFilterOpen(false)}
+                onApply={(q) => setFilterQuery(q)}
+                onReset={() => setFilterQuery('')}
+                currentQuery={filterQuery}
+            />
         </div>
     );
 };

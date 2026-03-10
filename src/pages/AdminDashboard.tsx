@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { InventoryTable } from '../components/admin/InventoryTable.tsx';
 import { RequestsTab } from '../components/admin/RequestsTab.tsx';
 import { EmployeeRecordsTab } from '../components/admin/EmployeeRecordsTab.tsx';
+import { EmployeeListTab } from '../components/admin/EmployeeListTab.tsx';
 import { Button } from '../components/ui/primitives';
 
 export const AdminDashboard = () => {
-    const [activeTab, setActiveTab] = useState<'inventory' | 'requests' | 'records'>('inventory');
+    const [activeTab, setActiveTab] = useState<'inventory' | 'requests' | 'records' | 'employees'>('inventory');
 
     return (
         <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
@@ -34,7 +35,14 @@ export const AdminDashboard = () => {
                         onClick={() => setActiveTab('records')}
                         className={`whitespace-nowrap text-xs sm:text-sm ${activeTab === 'records' ? 'shadow-sm' : 'text-slate-600'}`}
                     >
-                        Employee Records
+                        Medical Records
+                    </Button>
+                    <Button
+                        variant={activeTab === 'employees' ? 'primary' : 'ghost'}
+                        onClick={() => setActiveTab('employees')}
+                        className={`whitespace-nowrap text-xs sm:text-sm ${activeTab === 'employees' ? 'shadow-sm' : 'text-slate-600'}`}
+                    >
+                        Employees
                     </Button>
                 </div>
             </div>
@@ -42,7 +50,8 @@ export const AdminDashboard = () => {
             <div className="mt-6">
                 {activeTab === 'inventory' ? <InventoryTable /> :
                     activeTab === 'requests' ? <RequestsTab /> :
-                        <EmployeeRecordsTab />}
+                        activeTab === 'records' ? <EmployeeRecordsTab /> :
+                            <EmployeeListTab />}
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { MedicineBatch, EmployeeRequest, MedicalRecord } from '../types';
+import type { MedicineBatch, EmployeeRequest, MedicalRecord, Employee } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { addDays, subDays } from 'date-fns';
 
@@ -7,10 +7,12 @@ interface AppContextType {
     inventory: MedicineBatch[];
     requests: EmployeeRequest[];
     medicalRecords: MedicalRecord[];
+    employees: Employee[];
 
     addMedicine: (med: Omit<MedicineBatch, 'id' | 'addedDate'>) => void;
     addRequest: (req: Omit<EmployeeRequest, 'id' | 'requestDate' | 'status'>) => void;
     addMedicalRecord: (record: Omit<MedicalRecord, 'id' | 'date'>) => void;
+    addEmployee: (emp: Omit<Employee, 'id'>) => void;
     approveRequest: (requestId: string) => void;
     rejectRequest: (requestId: string) => void;
 }
@@ -52,9 +54,14 @@ const INITIAL_INVENTORY: MedicineBatch[] = [
 ];
 
 const INITIAL_RECORDS: MedicalRecord[] = [
-    { id: uuidv4(), employeeName: 'Juan Dela Cruz', date: subDays(new Date(), 30).toISOString(), temperature: 36.5, systolic: 120, diastolic: 80 },
-    { id: uuidv4(), employeeName: 'Juan Dela Cruz', date: subDays(new Date(), 15).toISOString(), temperature: 36.8, systolic: 118, diastolic: 79 },
-    { id: uuidv4(), employeeName: 'Juan Dela Cruz', date: subDays(new Date(), 2).toISOString(), temperature: 37.1, systolic: 122, diastolic: 82 },
+    { id: uuidv4(), employeeName: 'Juan Dela Cruz', date: subDays(new Date(), 30).toISOString(), temperature: 36.5, systolic: 120, diastolic: 80, pulseRate: '72', remarks: 'Routine checkup. Overall healthy.', medicineGiven: 'None' },
+    { id: uuidv4(), employeeName: 'Juan Dela Cruz', date: subDays(new Date(), 15).toISOString(), temperature: 36.8, systolic: 118, diastolic: 79, pulseRate: '75', remarks: 'Complained of mild fatigue.', medicineGiven: 'Vitamins' },
+    { id: uuidv4(), employeeName: 'Juan Dela Cruz', date: subDays(new Date(), 2).toISOString(), temperature: 37.1, systolic: 122, diastolic: 82, pulseRate: '80', remarks: 'Slight fever reported.', medicineGiven: 'Paracetamol 500mg' },
+];
+
+const INITIAL_EMPLOYEES: Employee[] = [
+    { id: uuidv4(), name: 'Juan Dela Cruz', contactNumber: '0917-123-4567', address: '123 Rizal St, Baliwag, Bulacan', gender: 'Male', age: 30 },
+    { id: uuidv4(), name: 'Maria Santos', contactNumber: '0918-987-6543', address: '456 Bonifacio Ave, Baliwag, Bulacan', gender: 'Female', age: 28 },
 ];
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -69,8 +76,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>(() => {
-        const saved = localStorage.getItem('bwd_medical_records_v2');
+        const saved = localStorage.getItem('bwd_medical_records_v3');
         return saved ? JSON.parse(saved) : INITIAL_RECORDS;
+    });
+
+    const [employees, setEmployees] = useState<Employee[]>(() => {
+        const saved = localStorage.getItem('bwd_employees');
+        return saved ? JSON.parse(saved) : INITIAL_EMPLOYEES;
     });
 
     useEffect(() => {
@@ -82,8 +94,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [requests]);
 
     useEffect(() => {
-        localStorage.setItem('bwd_medical_records_v2', JSON.stringify(medicalRecords));
+        localStorage.setItem('bwd_medical_records_v3', JSON.stringify(medicalRecords));
     }, [medicalRecords]);
+
+    useEffect(() => {
+        localStorage.setItem('bwd_employees', JSON.stringify(employees));
+    }, [employees]);
 
     // Actions
     const addMedicine = (med: Omit<MedicineBatch, 'id' | 'addedDate'>) => {
@@ -112,6 +128,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             date: new Date().toISOString(),
         };
         setMedicalRecords(prev => [...prev, newRecord]);
+    };
+
+    const addEmployee = (emp: Omit<Employee, 'id'>) => {
+        const newEmp: Employee = {
+            ...emp,
+            id: uuidv4()
+        };
+        setEmployees(prev => [...prev, newEmp]);
     };
 
     const approveRequest = (requestId: string) => {
@@ -150,7 +174,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     return (
-        <AppContext.Provider value={{ inventory, requests, medicalRecords, addMedicine, addRequest, addMedicalRecord, approveRequest, rejectRequest }}>
+        <AppContext.Provider value={{ inventory, requests, medicalRecords, employees, addMedicine, addRequest, addMedicalRecord, addEmployee, approveRequest, rejectRequest }}>
             {children}
         </AppContext.Provider>
     );
