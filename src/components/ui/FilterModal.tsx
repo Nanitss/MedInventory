@@ -5,7 +5,7 @@ import { X, Search, RotateCcw } from 'lucide-react';
 export interface FilterField {
     key: string;
     label: string;
-    type: 'text' | 'select';
+    type: 'select' | 'date';
     options?: string[];
 }
 
@@ -75,15 +75,14 @@ export const FilterModal = ({ isOpen, onClose, onApply, onReset, fields, current
                                         <option key={opt} value={opt}>{opt}</option>
                                     ))}
                                 </select>
-                            ) : (
+                            ) : field.type === 'date' ? (
                                 <input
-                                    type="text"
+                                    type="date"
                                     value={filters[field.key] || ''}
                                     onChange={(e) => setFilters(prev => ({ ...prev, [field.key]: e.target.value }))}
-                                    placeholder={`Filter by ${field.label.toLowerCase()}...`}
                                     className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition-all shadow-sm"
                                 />
-                            )}
+                            ) : null}
                         </div>
                     ))}
 

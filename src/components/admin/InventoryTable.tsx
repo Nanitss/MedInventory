@@ -13,18 +13,22 @@ export const InventoryTable = () => {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filters, setFilters] = useState<Record<string, string>>({});
 
+    const uniqueNames = Array.from(new Set(inventory.map(m => m.scientificName))).sort();
+    const uniqueBrands = Array.from(new Set(inventory.map(m => m.brand))).sort();
+    const uniqueIllnesses = Array.from(new Set(inventory.map(m => m.illness))).sort();
+
     const filterFields: FilterField[] = [
-        { key: 'genericName', label: 'Generic Name', type: 'text' },
-        { key: 'brand', label: 'Brand Name', type: 'text' },
-        { key: 'illness', label: 'Illness / Use', type: 'text' }
+        { key: 'genericName', label: 'Generic Name', type: 'select', options: uniqueNames },
+        { key: 'brand', label: 'Brand Name', type: 'select', options: uniqueBrands },
+        { key: 'illness', label: 'Illness / Use', type: 'select', options: uniqueIllnesses }
     ];
 
     // Sorting & Filtering Logic: Expiring soon (<= 30 days) on top, then by oldest added
     const sortedInventory = [...inventory]
         .filter(med => {
-            const matchName = !filters.genericName || med.scientificName.toLowerCase().includes(filters.genericName.toLowerCase());
-            const matchBrand = !filters.brand || med.brand.toLowerCase().includes(filters.brand.toLowerCase());
-            const matchIllness = !filters.illness || med.illness.toLowerCase().includes(filters.illness.toLowerCase());
+            const matchName = !filters.genericName || med.scientificName === filters.genericName;
+            const matchBrand = !filters.brand || med.brand === filters.brand;
+            const matchIllness = !filters.illness || med.illness === filters.illness;
 
             return matchName && matchBrand && matchIllness;
         })

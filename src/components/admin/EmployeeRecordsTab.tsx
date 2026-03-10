@@ -16,20 +16,29 @@ export const EmployeeRecordsTab = () => {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filters, setFilters] = useState<Record<string, string>>({});
 
+    const uniqueNames = Array.from(new Set(medicalRecords.map(r => r.employeeName))).sort();
+    const uniqueMeds = Array.from(new Set(medicalRecords.map(r => r.medicineGiven).filter(Boolean) as string[])).sort();
+
     const filterFields: FilterField[] = [
-        { key: 'employeeName', label: 'Employee Name', type: 'text' },
-        { key: 'remarks', label: 'Remarks', type: 'text' },
-        { key: 'medicineGiven', label: 'Medicine Given', type: 'text' }
+        { key: 'date', label: 'Date', type: 'date' },
+        { key: 'employeeName', label: 'Employee Name', type: 'select', options: uniqueNames },
+        { key: 'tempRange', label: 'Temperature Range', type: 'select', options: ['Normal (≤ 37.5°C)', 'Fever (> 37.5°C)'] },
+        { key: 'medicineGiven', label: 'Medicine Given', type: 'select', options: uniqueMeds }
     ];
 
     // Sort newest first
     const sortedRecords = [...medicalRecords]
         .filter(record => {
-            const matchName = !filters.employeeName || record.employeeName.toLowerCase().includes(filters.employeeName.toLowerCase());
-            const matchRemarks = !filters.remarks || (record.remarks && record.remarks.toLowerCase().includes(filters.remarks.toLowerCase()));
-            const matchMed = !filters.medicineGiven || (record.medicineGiven && record.medicineGiven.toLowerCase().includes(filters.medicineGiven.toLowerCase()));
+            const matchDate = !filters.date || format(new Date(record.date), 'yyyy-MM-dd') === filters.date;
+            const matchName = !filters.employeeName || record.employeeName === filters.employeeName;
 
-            return matchName && matchRemarks && matchMed;
+            let matchTemp = true;
+            if (filters.tempRange === 'Normal (≤ 37.5°C)') matchTemp = record.temperature <= 37.5;
+            else if (filters.tempRange === 'Fever (> 37.5°C)') matchTemp = record.temperature > 37.5;
+
+            const matchMed = !filters.medicineGiven || record.medicineGiven === filters.medicineGiven;
+
+            return matchDate && matchName && matchTemp && matchMed;
         })
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 

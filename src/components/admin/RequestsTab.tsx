@@ -14,18 +14,21 @@ export const RequestsTab = () => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [filters, setFilters] = useState<Record<string, string>>({});
 
+    const uniqueNames = Array.from(new Set(requests.map(r => r.employeeName))).sort();
+    const uniqueMeds = Array.from(new Set(requests.map(r => r.medicineRequested))).sort();
+
     const filterFields: FilterField[] = [
-        { key: 'employeeName', label: 'Employee Name', type: 'text' },
-        { key: 'medicine', label: 'Medicine Requested', type: 'text' },
+        { key: 'employeeName', label: 'Employee Name', type: 'select', options: uniqueNames },
+        { key: 'medicine', label: 'Medicine Requested', type: 'select', options: uniqueMeds },
         { key: 'status', label: 'Status', type: 'select', options: ['Pending', 'Approved', 'Rejected'] }
     ];
 
     // Sort requests: Pending first, then by date (newest first)
     const sortedRequests = [...requests]
         .filter(req => {
-            const matchName = !filters.employeeName || req.employeeName.toLowerCase().includes(filters.employeeName.toLowerCase());
-            const matchMed = !filters.medicine || req.medicineRequested.toLowerCase().includes(filters.medicine.toLowerCase());
-            const matchStatus = !filters.status || req.status.toLowerCase() === filters.status.toLowerCase();
+            const matchName = !filters.employeeName || req.employeeName === filters.employeeName;
+            const matchMed = !filters.medicine || req.medicineRequested === filters.medicine;
+            const matchStatus = !filters.status || req.status === filters.status;
 
             return matchName && matchMed && matchStatus;
         })

@@ -15,18 +15,21 @@ export const EmployeeListTab = () => {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filters, setFilters] = useState<Record<string, string>>({});
 
+    const uniqueNames = Array.from(new Set(employees.map(e => e.name))).sort();
+    const uniqueAddresses = Array.from(new Set(employees.map(e => e.address))).sort();
+
     const filterFields: FilterField[] = [
-        { key: 'name', label: 'Employee Name', type: 'text' },
+        { key: 'name', label: 'Employee Name', type: 'select', options: uniqueNames },
         { key: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Other'] },
-        { key: 'address', label: 'Address / Branch', type: 'text' }
+        { key: 'address', label: 'Address / Branch', type: 'select', options: uniqueAddresses }
     ];
 
     // Filter and sort (alphabetically by name)
     const sortedEmployees = [...employees]
         .filter(emp => {
-            const matchName = !filters.name || emp.name.toLowerCase().includes(filters.name.toLowerCase());
-            const matchGender = !filters.gender || emp.gender.toLowerCase() === filters.gender.toLowerCase();
-            const matchAddress = !filters.address || emp.address.toLowerCase().includes(filters.address.toLowerCase());
+            const matchName = !filters.name || emp.name === filters.name;
+            const matchGender = !filters.gender || emp.gender === filters.gender;
+            const matchAddress = !filters.address || emp.address === filters.address;
 
             return matchName && matchGender && matchAddress;
         })
