@@ -4,6 +4,7 @@ import { Button, Card, Badge } from '../ui/primitives';
 import { PlusCircle, FileDown, Filter, FileText } from 'lucide-react';
 import { AddEmployeeModal } from './AddEmployeeModal';
 import { EmployeeMedicalHistoryModal } from './EmployeeMedicalHistoryModal';
+import { EmployeeMedicalInfoModal } from './EmployeeMedicalInfoModal';
 import { FilterModal, type FilterField } from '../ui/FilterModal';
 import { exportToPdf } from '../../utils/exportPdf';
 import type { Employee } from '../../types';
@@ -11,7 +12,8 @@ import type { Employee } from '../../types';
 export const EmployeeListTab = () => {
     const { employees } = useAppContext();
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+    const [selectedHistoryEmployee, setSelectedHistoryEmployee] = useState<Employee | null>(null);
+    const [selectedInfoEmployee, setSelectedInfoEmployee] = useState<Employee | null>(null);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filters, setFilters] = useState<Record<string, string>>({});
 
@@ -120,15 +122,28 @@ export const EmployeeListTab = () => {
                                             {emp.address}
                                         </td>
                                         <td className="py-3 px-6 text-center">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-8 gap-1.5 text-brand-blue border-brand-blue-200 hover:bg-brand-blue-50 w-full sm:w-auto justify-center"
-                                                onClick={() => setSelectedEmployee(emp)}
-                                            >
-                                                <FileText size={14} />
-                                                View <span className="hidden sm:inline">Records</span>
-                                            </Button>
+                                            <div className="flex items-center justify-center gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-8 gap-1.5 text-brand-blue border-brand-blue-200 hover:bg-brand-blue-50"
+                                                    onClick={() => setSelectedHistoryEmployee(emp)}
+                                                    title="Consultation Records"
+                                                >
+                                                    <FileText size={14} />
+                                                    <span className="hidden xl:inline">Consultations</span>
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-8 gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                                                    onClick={() => setSelectedInfoEmployee(emp)}
+                                                    title="Medical Information"
+                                                >
+                                                    <FileText size={14} />
+                                                    <span className="hidden xl:inline">Medical Info</span>
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -139,7 +154,8 @@ export const EmployeeListTab = () => {
             </Card>
 
             <AddEmployeeModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
-            <EmployeeMedicalHistoryModal isOpen={selectedEmployee !== null} onClose={() => setSelectedEmployee(null)} employee={selectedEmployee} />
+            <EmployeeMedicalHistoryModal isOpen={selectedHistoryEmployee !== null} onClose={() => setSelectedHistoryEmployee(null)} employee={selectedHistoryEmployee} />
+            <EmployeeMedicalInfoModal isOpen={selectedInfoEmployee !== null} onClose={() => setSelectedInfoEmployee(null)} employee={selectedInfoEmployee} />
             <FilterModal
                 isOpen={isFilterOpen}
                 onClose={() => setIsFilterOpen(false)}

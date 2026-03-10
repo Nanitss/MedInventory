@@ -40,6 +40,12 @@ export interface Employee {
     address: string;
     gender: 'Male' | 'Female' | 'Other';
     age: number;
+    medicalInfo?: {
+        bloodType?: string;
+        allergies?: string;
+        preExistingConditions?: string;
+        emergencyContact?: string;
+    };
 }
 
 // Mock initial employee context

@@ -61,8 +61,34 @@ const INITIAL_RECORDS: MedicalRecord[] = [
 ];
 
 const INITIAL_EMPLOYEES: Employee[] = [
-    { id: uuidv4(), name: 'Juan Dela Cruz', contactNumber: '0917-123-4567', address: '123 Rizal St, Baliwag, Bulacan', gender: 'Male', age: 30 },
-    { id: uuidv4(), name: 'Maria Santos', contactNumber: '0918-987-6543', address: '456 Bonifacio Ave, Baliwag, Bulacan', gender: 'Female', age: 28 },
+    {
+        id: uuidv4(),
+        name: 'Juan Dela Cruz',
+        contactNumber: '0917-123-4567',
+        address: '123 Rizal St, Baliwag, Bulacan',
+        gender: 'Male',
+        age: 30,
+        medicalInfo: {
+            bloodType: 'O+',
+            allergies: 'None',
+            preExistingConditions: 'Hypertension',
+            emergencyContact: 'Maria Cruz (Wife) - 0917-999-8888'
+        }
+    },
+    {
+        id: uuidv4(),
+        name: 'Maria Santos',
+        contactNumber: '0918-987-6543',
+        address: '456 Bonifacio Ave, Baliwag, Bulacan',
+        gender: 'Female',
+        age: 28,
+        medicalInfo: {
+            bloodType: 'A-',
+            allergies: 'Penicillin, Dust',
+            preExistingConditions: 'Asthma',
+            emergencyContact: 'Pedro Santos (Brother) - 0918-777-6666'
+        }
+    },
 ];
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
