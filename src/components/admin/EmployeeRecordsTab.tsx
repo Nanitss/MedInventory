@@ -23,6 +23,8 @@ export const EmployeeRecordsTab = () => {
         { key: 'date', label: 'Date', type: 'date' },
         { key: 'employeeName', label: 'Employee Name', type: 'select', options: uniqueNames },
         { key: 'tempRange', label: 'Temperature Range', type: 'select', options: ['Normal (≤ 37.5°C)', 'Fever (> 37.5°C)'] },
+        { key: 'bpRange', label: 'Blood Pressure', type: 'select', options: ['Low / Hypotension', 'Normal', 'Elevated / Hypertension'] },
+        { key: 'pulseRange', label: 'Pulse Rate', type: 'select', options: ['Low (< 60 bpm)', 'Normal (60-100 bpm)', 'High (> 100 bpm)'] },
         { key: 'medicineGiven', label: 'Medicine Given', type: 'select', options: uniqueMeds }
     ];
 
@@ -36,9 +38,26 @@ export const EmployeeRecordsTab = () => {
             if (filters.tempRange === 'Normal (≤ 37.5°C)') matchTemp = record.temperature <= 37.5;
             else if (filters.tempRange === 'Fever (> 37.5°C)') matchTemp = record.temperature > 37.5;
 
+            let matchBp = true;
+            if (filters.bpRange === 'Low / Hypotension') {
+                matchBp = record.systolic < 90 || record.diastolic < 60;
+            } else if (filters.bpRange === 'Normal') {
+                matchBp = (record.systolic >= 90 && record.systolic <= 120) && (record.diastolic >= 60 && record.diastolic <= 80);
+            } else if (filters.bpRange === 'Elevated / Hypertension') {
+                matchBp = record.systolic > 120 || record.diastolic > 80;
+            }
+
+            let matchPulse = true;
+            const pulse = parseInt(record.pulseRate, 10);
+            if (!isNaN(pulse)) {
+                if (filters.pulseRange === 'Low (< 60 bpm)') matchPulse = pulse < 60;
+                else if (filters.pulseRange === 'Normal (60-100 bpm)') matchPulse = pulse >= 60 && pulse <= 100;
+                else if (filters.pulseRange === 'High (> 100 bpm)') matchPulse = pulse > 100;
+            }
+
             const matchMed = !filters.medicineGiven || record.medicineGiven === filters.medicineGiven;
 
-            return matchDate && matchName && matchTemp && matchMed;
+            return matchDate && matchName && matchTemp && matchBp && matchPulse && matchMed;
         })
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
