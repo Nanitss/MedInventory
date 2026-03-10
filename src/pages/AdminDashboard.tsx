@@ -3,10 +3,11 @@ import { InventoryTable } from '../components/admin/InventoryTable.tsx';
 import { RequestsTab } from '../components/admin/RequestsTab.tsx';
 import { EmployeeRecordsTab } from '../components/admin/EmployeeRecordsTab.tsx';
 import { EmployeeListTab } from '../components/admin/EmployeeListTab.tsx';
+import { OverviewTab } from '../components/admin/OverviewTab.tsx';
 import { Button } from '../components/ui/primitives';
 
 export const AdminDashboard = () => {
-    const [activeTab, setActiveTab] = useState<'inventory' | 'requests' | 'records' | 'employees'>('inventory');
+    const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'requests' | 'records' | 'employees'>('overview');
 
     return (
         <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
@@ -16,6 +17,13 @@ export const AdminDashboard = () => {
                     <p className="text-sm text-slate-500">Manage medicine inventory and employee requests</p>
                 </div>
                 <div className="flex bg-slate-100 p-1 rounded-lg overflow-x-auto">
+                    <Button
+                        variant={activeTab === 'overview' ? 'primary' : 'ghost'}
+                        onClick={() => setActiveTab('overview')}
+                        className={`whitespace-nowrap text-xs sm:text-sm ${activeTab === 'overview' ? 'shadow-sm' : 'text-slate-600'}`}
+                    >
+                        Overview
+                    </Button>
                     <Button
                         variant={activeTab === 'inventory' ? 'primary' : 'ghost'}
                         onClick={() => setActiveTab('inventory')}
@@ -48,10 +56,11 @@ export const AdminDashboard = () => {
             </div>
 
             <div className="mt-6">
-                {activeTab === 'inventory' ? <InventoryTable /> :
-                    activeTab === 'requests' ? <RequestsTab /> :
-                        activeTab === 'records' ? <EmployeeRecordsTab /> :
-                            <EmployeeListTab />}
+                {activeTab === 'overview' ? <OverviewTab /> :
+                    activeTab === 'inventory' ? <InventoryTable /> :
+                        activeTab === 'requests' ? <RequestsTab /> :
+                            activeTab === 'records' ? <EmployeeRecordsTab /> :
+                                <EmployeeListTab />}
             </div>
         </div>
     );

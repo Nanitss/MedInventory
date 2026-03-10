@@ -3,11 +3,30 @@ import type { MedicineBatch, EmployeeRequest, MedicalRecord, Employee } from '..
 import { v4 as uuidv4 } from 'uuid';
 import { addDays, subDays } from 'date-fns';
 
+export type ModalType =
+    | 'NONE'
+    | 'ADD_MEDICINE'
+    | 'REQUEST_MEDICINE'
+    | 'ADD_ADMIN_REQUEST'
+    | 'ADD_EMPLOYEE'
+    | 'ADD_MEDICAL_RECORD'
+    | 'VIEW_MEDICAL_HISTORY'
+    | 'VIEW_MEDICAL_INFO'
+    | 'VIEW_REMARKS';
+
+export interface ModalState {
+    type: ModalType;
+    data?: any;
+}
+
 interface AppContextType {
     inventory: MedicineBatch[];
     requests: EmployeeRequest[];
     medicalRecords: MedicalRecord[];
     employees: Employee[];
+    modalState: ModalState;
+    openModal: (type: ModalType, data?: any) => void;
+    closeModal: () => void;
 
     addMedicine: (med: Omit<MedicineBatch, 'id' | 'addedDate'>) => void;
     addRequest: (req: Omit<EmployeeRequest, 'id' | 'requestDate' | 'status'>) => void;
@@ -111,6 +130,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const saved = localStorage.getItem('bwd_employees');
         return saved ? JSON.parse(saved) : INITIAL_EMPLOYEES;
     });
+
+    const [modalState, setModalState] = useState<ModalState>({ type: 'NONE' });
+
+    const openModal = (type: ModalType, data?: any) => {
+        setModalState({ type, data });
+    };
+
+    const closeModal = () => {
+        setModalState({ type: 'NONE' });
+    };
 
     useEffect(() => {
         localStorage.setItem('bwd_inventory', JSON.stringify(inventory));
@@ -229,7 +258,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     return (
-        <AppContext.Provider value={{ inventory, requests, medicalRecords, employees, addMedicine, addRequest, addManualApprovedRequest, addMedicalRecord, addEmployee, approveRequest, rejectRequest }}>
+        <AppContext.Provider value={{ inventory, requests, medicalRecords, employees, addMedicine, addRequest, addManualApprovedRequest, addMedicalRecord, addEmployee, approveRequest, rejectRequest, modalState, openModal, closeModal }}>
             {children}
         </AppContext.Provider>
     );

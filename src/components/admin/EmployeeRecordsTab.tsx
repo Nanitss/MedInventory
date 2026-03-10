@@ -3,16 +3,11 @@ import { useAppContext } from '../../lib/context';
 import { Button, Card } from '../ui/primitives';
 import { format } from 'date-fns';
 import { PlusCircle, Thermometer, Droplets, Activity, FileText, FileDown, Filter } from 'lucide-react';
-import { AddMedicalRecordModal } from './AddMedicalRecordModal';
-import { ViewRemarksModal } from './ViewRemarksModal';
 import { FilterModal, type FilterField } from '../ui/FilterModal';
 import { exportToPdf } from '../../utils/exportPdf';
-import type { MedicalRecord } from '../../types';
 
 export const EmployeeRecordsTab = () => {
-    const { medicalRecords } = useAppContext();
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(null);
+    const { medicalRecords, openModal } = useAppContext();
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filters, setFilters] = useState<Record<string, string>>({});
 
@@ -102,7 +97,7 @@ export const EmployeeRecordsTab = () => {
                     <Button variant="outline" onClick={handleExportPdf} className="gap-2 w-full sm:w-auto text-slate-600">
                         <FileDown size={16} /> Export PDF
                     </Button>
-                    <Button onClick={() => setIsAddModalOpen(true)} className="gap-2 bg-brand-blue hover:bg-brand-blue-dark w-full sm:w-auto">
+                    <Button onClick={() => openModal('ADD_MEDICAL_RECORD')} className="gap-2 bg-brand-blue hover:bg-brand-blue-dark w-full sm:w-auto">
                         <PlusCircle size={18} />
                         Add Record
                     </Button>
@@ -167,7 +162,7 @@ export const EmployeeRecordsTab = () => {
                                                 variant="ghost"
                                                 size="sm"
                                                 className="h-8 px-2 text-brand-blue border border-brand-blue-200 hover:bg-brand-blue-50"
-                                                onClick={() => setSelectedRecord(record)}
+                                                onClick={() => openModal('VIEW_REMARKS', record)}
                                             >
                                                 <FileText size={16} />
                                                 <span className="ml-1 text-xs">View</span>
@@ -181,8 +176,6 @@ export const EmployeeRecordsTab = () => {
                 </div>
             </Card>
 
-            <AddMedicalRecordModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
-            <ViewRemarksModal isOpen={selectedRecord !== null} onClose={() => setSelectedRecord(null)} record={selectedRecord} />
             <FilterModal
                 isOpen={isFilterOpen}
                 onClose={() => setIsFilterOpen(false)}

@@ -4,14 +4,12 @@ import { Button, Card, Badge } from '../ui/primitives';
 import { format } from 'date-fns';
 import { Check, X, FileDown, Filter, PlusCircle } from 'lucide-react';
 import { FilterModal, type FilterField } from '../ui/FilterModal';
-import { AddAdminRequestModal } from './AddAdminRequestModal';
 import { exportToPdf } from '../../utils/exportPdf';
 
 export const RequestsTab = () => {
-    const { requests, approveRequest, rejectRequest, inventory } = useAppContext();
+    const { requests, approveRequest, rejectRequest, inventory, openModal } = useAppContext();
 
     const [isFilterOpen, setIsFilterOpen] = useState(false);
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [filters, setFilters] = useState<Record<string, string>>({});
 
     const uniqueNames = Array.from(new Set(requests.map(r => r.employeeName))).sort();
@@ -77,7 +75,7 @@ export const RequestsTab = () => {
                     <Button variant="outline" onClick={handleExportPdf} className="gap-2 w-full sm:w-auto text-slate-600">
                         <FileDown size={16} /> Export PDF
                     </Button>
-                    <Button onClick={() => setIsAddModalOpen(true)} className="gap-2 bg-brand-blue hover:bg-brand-blue-dark w-full sm:w-auto">
+                    <Button onClick={() => openModal('ADD_ADMIN_REQUEST')} className="gap-2 bg-brand-blue hover:bg-brand-blue-dark w-full sm:w-auto">
                         <PlusCircle size={18} />
                         Add Request
                     </Button>
@@ -171,7 +169,6 @@ export const RequestsTab = () => {
                 </div>
             </Card>
 
-            <AddAdminRequestModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
             <FilterModal
                 isOpen={isFilterOpen}
                 onClose={() => setIsFilterOpen(false)}

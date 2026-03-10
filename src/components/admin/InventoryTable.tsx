@@ -3,13 +3,11 @@ import { useAppContext } from '../../lib/context';
 import { Button, Card, Badge } from '../ui/primitives';
 import { PlusCircle, AlertTriangle, FileDown, Filter } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
-import { AddMedicineModal } from './AddMedicineModal.tsx';
 import { exportToPdf } from '../../utils/exportPdf';
 import { FilterModal, type FilterField } from '../ui/FilterModal';
 
 export const InventoryTable = () => {
-    const { inventory } = useAppContext();
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const { inventory, openModal } = useAppContext();
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filters, setFilters] = useState<Record<string, string>>({});
 
@@ -85,7 +83,7 @@ export const InventoryTable = () => {
                     <Button variant="outline" onClick={handleExportPdf} className="gap-2 w-full sm:w-auto text-slate-600">
                         <FileDown size={16} /> Export PDF
                     </Button>
-                    <Button onClick={() => setIsModalOpen(true)} className="gap-2 w-full sm:w-auto">
+                    <Button onClick={() => openModal('ADD_MEDICINE')} className="gap-2 w-full sm:w-auto">
                         <PlusCircle size={18} />
                         Add Medicine
                     </Button>
@@ -174,7 +172,6 @@ export const InventoryTable = () => {
                 </div>
             </Card>
 
-            <AddMedicineModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
             <FilterModal
                 isOpen={isFilterOpen}
                 onClose={() => setIsFilterOpen(false)}

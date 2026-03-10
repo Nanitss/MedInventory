@@ -2,18 +2,11 @@ import { useState } from 'react';
 import { useAppContext } from '../../lib/context';
 import { Button, Card, Badge } from '../ui/primitives';
 import { PlusCircle, FileDown, Filter, FileText } from 'lucide-react';
-import { AddEmployeeModal } from './AddEmployeeModal';
-import { EmployeeMedicalHistoryModal } from './EmployeeMedicalHistoryModal';
-import { EmployeeMedicalInfoModal } from './EmployeeMedicalInfoModal';
 import { FilterModal, type FilterField } from '../ui/FilterModal';
 import { exportToPdf } from '../../utils/exportPdf';
-import type { Employee } from '../../types';
 
 export const EmployeeListTab = () => {
-    const { employees } = useAppContext();
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [selectedHistoryEmployee, setSelectedHistoryEmployee] = useState<Employee | null>(null);
-    const [selectedInfoEmployee, setSelectedInfoEmployee] = useState<Employee | null>(null);
+    const { employees, openModal } = useAppContext();
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filters, setFilters] = useState<Record<string, string>>({});
 
@@ -76,7 +69,7 @@ export const EmployeeListTab = () => {
                     <Button variant="outline" onClick={handleExportPdf} className="gap-2 w-full sm:w-auto text-slate-600">
                         <FileDown size={16} /> Export PDF
                     </Button>
-                    <Button onClick={() => setIsAddModalOpen(true)} className="gap-2 bg-brand-blue hover:bg-brand-blue-dark w-full sm:w-auto">
+                    <Button onClick={() => openModal('ADD_EMPLOYEE')} className="gap-2 bg-brand-blue hover:bg-brand-blue-dark w-full sm:w-auto">
                         <PlusCircle size={18} />
                         Add Employee
                     </Button>
@@ -127,7 +120,7 @@ export const EmployeeListTab = () => {
                                                     variant="outline"
                                                     size="sm"
                                                     className="h-8 gap-1.5 text-brand-blue border-brand-blue-200 hover:bg-brand-blue-50"
-                                                    onClick={() => setSelectedHistoryEmployee(emp)}
+                                                    onClick={() => openModal('VIEW_MEDICAL_HISTORY', emp)}
                                                     title="Consultation Records"
                                                 >
                                                     <FileText size={14} />
@@ -137,7 +130,7 @@ export const EmployeeListTab = () => {
                                                     variant="outline"
                                                     size="sm"
                                                     className="h-8 gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-                                                    onClick={() => setSelectedInfoEmployee(emp)}
+                                                    onClick={() => openModal('VIEW_MEDICAL_INFO', emp)}
                                                     title="Medical Information"
                                                 >
                                                     <FileText size={14} />
@@ -153,9 +146,6 @@ export const EmployeeListTab = () => {
                 </div>
             </Card>
 
-            <AddEmployeeModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
-            <EmployeeMedicalHistoryModal isOpen={selectedHistoryEmployee !== null} onClose={() => setSelectedHistoryEmployee(null)} employee={selectedHistoryEmployee} />
-            <EmployeeMedicalInfoModal isOpen={selectedInfoEmployee !== null} onClose={() => setSelectedInfoEmployee(null)} employee={selectedInfoEmployee} />
             <FilterModal
                 isOpen={isFilterOpen}
                 onClose={() => setIsFilterOpen(false)}

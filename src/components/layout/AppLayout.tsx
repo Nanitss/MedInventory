@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '../ui/primitives';
 import { HeartPulse, Repeat } from 'lucide-react';
+import { GlobalModal } from '../ui/GlobalModal';
 
 interface AppLayoutProps {
     children: React.ReactNode;
@@ -11,6 +12,7 @@ interface AppLayoutProps {
 export const AppLayout = ({ children, userRole, onRoleSwitch }: AppLayoutProps) => {
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+            <GlobalModal />
             <header className="bg-brand-blue border-b border-brand-blue-dark shadow-md sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">

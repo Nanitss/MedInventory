@@ -1,14 +1,11 @@
-import { useState } from 'react';
 import { MedicalRecords } from '../components/employee/MedicalRecords';
 import { EmployeeRequestsHistory } from '../components/employee/EmployeeRequestsHistory';
-import { RequestMedicineModal } from '../components/employee/RequestMedicineModal.tsx';
 import { Button } from '../components/ui/primitives';
 import { Pill } from 'lucide-react';
 import { useAppContext } from '../lib/context';
 
 export const EmployeeDashboard = () => {
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const { requests } = useAppContext();
+    const { requests, openModal } = useAppContext();
 
     // Pending requests for current employee "Juan Dela Cruz"
     const pendingRequests = requests.filter(r => r.employeeName === 'Juan Dela Cruz' && r.status === 'Pending');
@@ -28,7 +25,7 @@ export const EmployeeDashboard = () => {
                     )}
                     <Button
                         variant="primary"
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={() => openModal('REQUEST_MEDICINE')}
                         className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-brand-blue hover:bg-brand-blue-dark"
                     >
                         <Pill size={18} />
@@ -42,8 +39,6 @@ export const EmployeeDashboard = () => {
                 <hr className="border-slate-200" />
                 <EmployeeRequestsHistory />
             </div>
-
-            <RequestMedicineModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
         </div>
     );
 };
