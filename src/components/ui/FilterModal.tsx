@@ -2,31 +2,47 @@ import { useState, useEffect } from 'react';
 import { Button } from './primitives';
 import { X, Search, RotateCcw } from 'lucide-react';
 
+export interface FilterField {
+    key: string;
+    label: string;
+    type: 'text' | 'select';
+    options?: string[];
+}
+
 interface Props {
     isOpen: boolean;
     onClose: () => void;
-    onApply: (query: string) => void;
+    onApply: (filters: Record<string, string>) => void;
     onReset: () => void;
-    currentQuery: string;
+    fields: FilterField[];
+    currentFilters: Record<string, string>;
 }
 
-export const FilterModal = ({ isOpen, onClose, onApply, onReset, currentQuery }: Props) => {
-    const [query, setQuery] = useState(currentQuery);
+export const FilterModal = ({ isOpen, onClose, onApply, onReset, fields, currentFilters }: Props) => {
+    const [filters, setFilters] = useState<Record<string, string>>(currentFilters);
 
     // Sync local state if parent state changes
     useEffect(() => {
-        setQuery(currentQuery);
-    }, [currentQuery, isOpen]);
+        setFilters(currentFilters);
+    }, [currentFilters, isOpen]);
 
     if (!isOpen) return null;
 
     const handleApply = () => {
-        onApply(query);
+        // filter out empty values
+        const cleanFilters = Object.entries(filters).reduce((acc, [k, v]) => {
+            if (v.trim() !== '') {
+                acc[k] = v;
+            }
+            return acc;
+        }, {} as Record<string, string>);
+
+        onApply(cleanFilters);
         onClose();
     };
 
     const handleReset = () => {
-        setQuery('');
+        setFilters({});
         onReset();
         onClose();
     };
@@ -44,20 +60,34 @@ export const FilterModal = ({ isOpen, onClose, onApply, onReset, currentQuery }:
                     </button>
                 </div>
 
-                <div className="p-6 space-y-4">
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Search Query</label>
-                        <input
-                            type="text"
-                            value={query}
-                            onChange={(e) => setQuery(e.target.value)}
-                            placeholder="Type to filter..."
-                            className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition-all shadow-sm"
-                            autoFocus
-                        />
-                    </div>
+                <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                    {fields.map((field) => (
+                        <div key={field.key}>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">{field.label}</label>
+                            {field.type === 'select' ? (
+                                <select
+                                    value={filters[field.key] || ''}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, [field.key]: e.target.value }))}
+                                    className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition-all shadow-sm bg-white"
+                                >
+                                    <option value="">All</option>
+                                    {field.options?.map(opt => (
+                                        <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <input
+                                    type="text"
+                                    value={filters[field.key] || ''}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, [field.key]: e.target.value }))}
+                                    placeholder={`Filter by ${field.label.toLowerCase()}...`}
+                                    className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition-all shadow-sm"
+                                />
+                            )}
+                        </div>
+                    ))}
 
-                    <div className="pt-4 flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
+                    <div className="pt-4 flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 border-t border-slate-100">
                         <Button type="button" variant="outline" onClick={handleReset} className="w-full sm:w-auto text-slate-500 flex items-center justify-center gap-2">
                             <RotateCcw size={14} /> Reset
                         </Button>

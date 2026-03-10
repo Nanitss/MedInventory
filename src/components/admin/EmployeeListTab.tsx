@@ -4,7 +4,7 @@ import { Button, Card, Badge } from '../ui/primitives';
 import { PlusCircle, FileDown, Filter, FileText } from 'lucide-react';
 import { AddEmployeeModal } from './AddEmployeeModal';
 import { EmployeeMedicalHistoryModal } from './EmployeeMedicalHistoryModal';
-import { FilterModal } from '../ui/FilterModal';
+import { FilterModal, type FilterField } from '../ui/FilterModal';
 import { exportToPdf } from '../../utils/exportPdf';
 import type { Employee } from '../../types';
 
@@ -13,18 +13,22 @@ export const EmployeeListTab = () => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
-    const [filterQuery, setFilterQuery] = useState('');
+    const [filters, setFilters] = useState<Record<string, string>>({});
+
+    const filterFields: FilterField[] = [
+        { key: 'name', label: 'Employee Name', type: 'text' },
+        { key: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Other'] },
+        { key: 'address', label: 'Address / Branch', type: 'text' }
+    ];
 
     // Filter and sort (alphabetically by name)
     const sortedEmployees = [...employees]
         .filter(emp => {
-            if (!filterQuery) return true;
-            const q = filterQuery.toLowerCase();
-            return (
-                emp.name.toLowerCase().includes(q) ||
-                emp.contactNumber.includes(q) ||
-                emp.address.toLowerCase().includes(q)
-            );
+            const matchName = !filters.name || emp.name.toLowerCase().includes(filters.name.toLowerCase());
+            const matchGender = !filters.gender || emp.gender.toLowerCase() === filters.gender.toLowerCase();
+            const matchAddress = !filters.address || emp.address.toLowerCase().includes(filters.address.toLowerCase());
+
+            return matchName && matchGender && matchAddress;
         })
         .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -51,14 +55,14 @@ export const EmployeeListTab = () => {
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <div>
                     <h3 className="text-lg font-bold text-slate-800">Employee List</h3>
-                    <p className="text-sm text-slate-500 flex items-center gap-2">
-                        Manage company employees and their medical records
-                        {filterQuery && (
-                            <Badge variant="default" className="ml-2 font-normal text-[10px] py-0 px-2 rounded-full">
-                                Filtered: "{filterQuery}"
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <p className="text-sm text-slate-500">Manage company employees and their medical records</p>
+                        {Object.keys(filters).length > 0 && (
+                            <Badge variant="default" className="font-normal text-[10px] py-0 px-2 rounded-full">
+                                {Object.keys(filters).length} Filter(s) Applied
                             </Badge>
                         )}
-                    </p>
+                    </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <Button variant="outline" onClick={() => setIsFilterOpen(true)} className="gap-2 w-full sm:w-auto text-slate-600">
@@ -84,7 +88,7 @@ export const EmployeeListTab = () => {
                                 <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Gender</th>
                                 <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Contact No.</th>
                                 <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Address</th>
-                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold text-center">Action</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold text-center">Medical Record</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -136,9 +140,10 @@ export const EmployeeListTab = () => {
             <FilterModal
                 isOpen={isFilterOpen}
                 onClose={() => setIsFilterOpen(false)}
-                onApply={(q) => setFilterQuery(q)}
-                onReset={() => setFilterQuery('')}
-                currentQuery={filterQuery}
+                onApply={(f) => setFilters(f)}
+                onReset={() => setFilters({})}
+                fields={filterFields}
+                currentFilters={filters}
             />
         </div>
     );

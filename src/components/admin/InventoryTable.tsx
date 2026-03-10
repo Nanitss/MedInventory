@@ -5,24 +5,28 @@ import { PlusCircle, AlertTriangle, FileDown, Filter } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { AddMedicineModal } from './AddMedicineModal.tsx';
 import { exportToPdf } from '../../utils/exportPdf';
-import { FilterModal } from '../ui/FilterModal';
+import { FilterModal, type FilterField } from '../ui/FilterModal';
 
 export const InventoryTable = () => {
     const { inventory } = useAppContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
-    const [filterQuery, setFilterQuery] = useState('');
+    const [filters, setFilters] = useState<Record<string, string>>({});
+
+    const filterFields: FilterField[] = [
+        { key: 'genericName', label: 'Generic Name', type: 'text' },
+        { key: 'brand', label: 'Brand Name', type: 'text' },
+        { key: 'illness', label: 'Illness / Use', type: 'text' }
+    ];
 
     // Sorting & Filtering Logic: Expiring soon (<= 30 days) on top, then by oldest added
     const sortedInventory = [...inventory]
         .filter(med => {
-            if (!filterQuery) return true;
-            const q = filterQuery.toLowerCase();
-            return (
-                med.scientificName.toLowerCase().includes(q) ||
-                med.brand.toLowerCase().includes(q) ||
-                med.illness.toLowerCase().includes(q)
-            );
+            const matchName = !filters.genericName || med.scientificName.toLowerCase().includes(filters.genericName.toLowerCase());
+            const matchBrand = !filters.brand || med.brand.toLowerCase().includes(filters.brand.toLowerCase());
+            const matchIllness = !filters.illness || med.illness.toLowerCase().includes(filters.illness.toLowerCase());
+
+            return matchName && matchBrand && matchIllness;
         })
         .sort((a, b) => {
             const isAExpiring = differenceInDays(new Date(a.expiryDate), new Date()) <= 30;
@@ -61,14 +65,14 @@ export const InventoryTable = () => {
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <div>
                     <h3 className="text-lg font-bold text-slate-800">Current Stock</h3>
-                    <p className="text-sm text-slate-500 flex items-center gap-2">
-                        View and manage the medicine inventory
-                        {filterQuery && (
-                            <Badge variant="default" className="ml-2 font-normal text-[10px] py-0">
-                                Filtered: "{filterQuery}"
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <p className="text-sm text-slate-500">View and manage the medicine inventory</p>
+                        {Object.keys(filters).length > 0 && (
+                            <Badge variant="default" className="font-normal text-[10px] py-0 px-2 rounded-full">
+                                {Object.keys(filters).length} Filter(s) Applied
                             </Badge>
                         )}
-                    </p>
+                    </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <Button variant="outline" onClick={() => setIsFilterOpen(true)} className="gap-2 w-full sm:w-auto text-slate-600">
@@ -170,9 +174,10 @@ export const InventoryTable = () => {
             <FilterModal
                 isOpen={isFilterOpen}
                 onClose={() => setIsFilterOpen(false)}
-                onApply={(q) => setFilterQuery(q)}
-                onReset={() => setFilterQuery('')}
-                currentQuery={filterQuery}
+                onApply={(f) => setFilters(f)}
+                onReset={() => setFilters({})}
+                fields={filterFields}
+                currentFilters={filters}
             />
         </div>
     );

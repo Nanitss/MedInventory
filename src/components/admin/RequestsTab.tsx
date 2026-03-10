@@ -2,27 +2,32 @@ import { useState } from 'react';
 import { useAppContext } from '../../lib/context';
 import { Button, Card, Badge } from '../ui/primitives';
 import { format } from 'date-fns';
-import { Check, X, FileDown, Filter } from 'lucide-react';
-import { FilterModal } from '../ui/FilterModal';
+import { Check, X, FileDown, Filter, PlusCircle } from 'lucide-react';
+import { FilterModal, type FilterField } from '../ui/FilterModal';
+import { AddAdminRequestModal } from './AddAdminRequestModal';
 import { exportToPdf } from '../../utils/exportPdf';
 
 export const RequestsTab = () => {
     const { requests, approveRequest, rejectRequest, inventory } = useAppContext();
 
     const [isFilterOpen, setIsFilterOpen] = useState(false);
-    const [filterQuery, setFilterQuery] = useState('');
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [filters, setFilters] = useState<Record<string, string>>({});
+
+    const filterFields: FilterField[] = [
+        { key: 'employeeName', label: 'Employee Name', type: 'text' },
+        { key: 'medicine', label: 'Medicine Requested', type: 'text' },
+        { key: 'status', label: 'Status', type: 'select', options: ['Pending', 'Approved', 'Rejected'] }
+    ];
 
     // Sort requests: Pending first, then by date (newest first)
     const sortedRequests = [...requests]
         .filter(req => {
-            if (!filterQuery) return true;
-            const q = filterQuery.toLowerCase();
-            return (
-                req.employeeName.toLowerCase().includes(q) ||
-                req.medicineRequested.toLowerCase().includes(q) ||
-                req.status.toLowerCase().includes(q) ||
-                (req.reason && req.reason.toLowerCase().includes(q))
-            );
+            const matchName = !filters.employeeName || req.employeeName.toLowerCase().includes(filters.employeeName.toLowerCase());
+            const matchMed = !filters.medicine || req.medicineRequested.toLowerCase().includes(filters.medicine.toLowerCase());
+            const matchStatus = !filters.status || req.status.toLowerCase() === filters.status.toLowerCase();
+
+            return matchName && matchMed && matchStatus;
         })
         .sort((a, b) => {
             if (a.status === 'Pending' && b.status !== 'Pending') return -1;
@@ -53,14 +58,14 @@ export const RequestsTab = () => {
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <div>
                     <h3 className="text-lg font-bold text-slate-800">Employee Requests</h3>
-                    <p className="text-sm text-slate-500 flex items-center gap-2">
-                        Review and manage medicine requests from employees
-                        {filterQuery && (
-                            <Badge variant="default" className="ml-2 font-normal text-[10px] py-0">
-                                Filtered: "{filterQuery}"
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <p className="text-sm text-slate-500">Review and manage medicine requests from employees</p>
+                        {Object.keys(filters).length > 0 && (
+                            <Badge variant="default" className="font-normal text-[10px] py-0 px-2 rounded-full">
+                                {Object.keys(filters).length} Filter(s) Applied
                             </Badge>
                         )}
-                    </p>
+                    </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <Button variant="outline" onClick={() => setIsFilterOpen(true)} className="gap-2 w-full sm:w-auto text-slate-600">
@@ -68,6 +73,10 @@ export const RequestsTab = () => {
                     </Button>
                     <Button variant="outline" onClick={handleExportPdf} className="gap-2 w-full sm:w-auto text-slate-600">
                         <FileDown size={16} /> Export PDF
+                    </Button>
+                    <Button onClick={() => setIsAddModalOpen(true)} className="gap-2 bg-brand-blue hover:bg-brand-blue-dark w-full sm:w-auto">
+                        <PlusCircle size={18} />
+                        Add Request
                     </Button>
                 </div>
             </div>
@@ -159,12 +168,14 @@ export const RequestsTab = () => {
                 </div>
             </Card>
 
+            <AddAdminRequestModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
             <FilterModal
                 isOpen={isFilterOpen}
                 onClose={() => setIsFilterOpen(false)}
-                onApply={(q) => setFilterQuery(q)}
-                onReset={() => setFilterQuery('')}
-                currentQuery={filterQuery}
+                onApply={(f) => setFilters(f)}
+                onReset={() => setFilters({})}
+                fields={filterFields}
+                currentFilters={filters}
             />
         </div>
     );

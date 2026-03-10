@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { PlusCircle, Thermometer, Droplets, Activity, FileText, FileDown, Filter } from 'lucide-react';
 import { AddMedicalRecordModal } from './AddMedicalRecordModal';
 import { ViewRemarksModal } from './ViewRemarksModal';
-import { FilterModal } from '../ui/FilterModal';
+import { FilterModal, type FilterField } from '../ui/FilterModal';
 import { exportToPdf } from '../../utils/exportPdf';
 import type { MedicalRecord } from '../../types';
 
@@ -14,18 +14,22 @@ export const EmployeeRecordsTab = () => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(null);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
-    const [filterQuery, setFilterQuery] = useState('');
+    const [filters, setFilters] = useState<Record<string, string>>({});
+
+    const filterFields: FilterField[] = [
+        { key: 'employeeName', label: 'Employee Name', type: 'text' },
+        { key: 'remarks', label: 'Remarks', type: 'text' },
+        { key: 'medicineGiven', label: 'Medicine Given', type: 'text' }
+    ];
 
     // Sort newest first
     const sortedRecords = [...medicalRecords]
         .filter(record => {
-            if (!filterQuery) return true;
-            const q = filterQuery.toLowerCase();
-            return (
-                record.employeeName.toLowerCase().includes(q) ||
-                (record.remarks && record.remarks.toLowerCase().includes(q)) ||
-                (record.medicineGiven && record.medicineGiven.toLowerCase().includes(q))
-            );
+            const matchName = !filters.employeeName || record.employeeName.toLowerCase().includes(filters.employeeName.toLowerCase());
+            const matchRemarks = !filters.remarks || (record.remarks && record.remarks.toLowerCase().includes(filters.remarks.toLowerCase()));
+            const matchMed = !filters.medicineGiven || (record.medicineGiven && record.medicineGiven.toLowerCase().includes(filters.medicineGiven.toLowerCase()));
+
+            return matchName && matchRemarks && matchMed;
         })
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -54,14 +58,14 @@ export const EmployeeRecordsTab = () => {
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <div>
                     <h3 className="text-lg font-bold text-slate-800">Employee Records</h3>
-                    <p className="text-sm text-slate-500 flex items-center gap-2">
-                        Manage employee health vitals and medical history
-                        {filterQuery && (
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <p className="text-sm text-slate-500">Manage employee health vitals and medical history</p>
+                        {Object.keys(filters).length > 0 && (
                             <div className="bg-slate-800 text-white text-[10px] py-0 px-2 rounded-full font-normal">
-                                Filtered: "{filterQuery}"
+                                {Object.keys(filters).length} Filter(s) Applied
                             </div>
                         )}
-                    </p>
+                    </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <Button variant="outline" onClick={() => setIsFilterOpen(true)} className="gap-2 w-full sm:w-auto text-slate-600">
@@ -134,10 +138,11 @@ export const EmployeeRecordsTab = () => {
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="h-8 px-2 text-brand-blue hover:bg-brand-blue-50"
+                                                className="h-8 px-2 text-brand-blue border border-brand-blue-200 hover:bg-brand-blue-50"
                                                 onClick={() => setSelectedRecord(record)}
                                             >
                                                 <FileText size={16} />
+                                                <span className="ml-1 text-xs">View</span>
                                             </Button>
                                         </td>
                                     </tr>
@@ -153,9 +158,10 @@ export const EmployeeRecordsTab = () => {
             <FilterModal
                 isOpen={isFilterOpen}
                 onClose={() => setIsFilterOpen(false)}
-                onApply={(q) => setFilterQuery(q)}
-                onReset={() => setFilterQuery('')}
-                currentQuery={filterQuery}
+                onApply={(f) => setFilters(f)}
+                onReset={() => setFilters({})}
+                fields={filterFields}
+                currentFilters={filters}
             />
         </div>
     );

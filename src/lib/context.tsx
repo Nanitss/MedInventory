@@ -11,6 +11,7 @@ interface AppContextType {
 
     addMedicine: (med: Omit<MedicineBatch, 'id' | 'addedDate'>) => void;
     addRequest: (req: Omit<EmployeeRequest, 'id' | 'requestDate' | 'status'>) => void;
+    addManualApprovedRequest: (req: Omit<EmployeeRequest, 'id' | 'requestDate' | 'status'>) => void;
     addMedicalRecord: (record: Omit<MedicalRecord, 'id' | 'date'>) => void;
     addEmployee: (emp: Omit<Employee, 'id'>) => void;
     approveRequest: (requestId: string) => void;
@@ -121,6 +122,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setRequests(prev => [...prev, newReq]);
     };
 
+    const addManualApprovedRequest = (req: Omit<EmployeeRequest, 'id' | 'requestDate' | 'status'>) => {
+        let assignedBatchId: string | undefined = undefined;
+
+        // Find the oldest available batch for the requested medicine to deduct stock
+        const matchingBatches = inventory
+            .filter(b => b.scientificName.toLowerCase() === req.medicineRequested.toLowerCase() && b.quantity > 0)
+            .sort((a, b) => new Date(a.addedDate).getTime() - new Date(b.addedDate).getTime());
+
+        if (matchingBatches.length > 0) {
+            const oldestBatch = matchingBatches[0];
+            assignedBatchId = oldestBatch.id;
+
+            // Update inventory
+            setInventory(prevInv => prevInv.map(b =>
+                b.id === oldestBatch.id ? { ...b, quantity: b.quantity - 1 } : b
+            ));
+        }
+
+        const newReq: EmployeeRequest = {
+            ...req,
+            id: uuidv4(),
+            requestDate: new Date().toISOString(),
+            status: 'Approved',
+            assignedBatchId
+        };
+        setRequests(prev => [...prev, newReq]);
+    };
+
     const addMedicalRecord = (record: Omit<MedicalRecord, 'id' | 'date'>) => {
         const newRecord: MedicalRecord = {
             ...record,
@@ -174,7 +203,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     return (
-        <AppContext.Provider value={{ inventory, requests, medicalRecords, employees, addMedicine, addRequest, addMedicalRecord, addEmployee, approveRequest, rejectRequest }}>
+        <AppContext.Provider value={{ inventory, requests, medicalRecords, employees, addMedicine, addRequest, addManualApprovedRequest, addMedicalRecord, addEmployee, approveRequest, rejectRequest }}>
             {children}
         </AppContext.Provider>
     );
