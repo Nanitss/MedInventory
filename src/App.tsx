@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AppLayout } from './components/layout/AppLayout';
 import { AdminDashboard } from './pages/AdminDashboard';
-import { EmployeeDashboard } from './pages/EmployeeDashboard';
+import { EmployeeDashboard } from './pages/EmployeeDashboard.tsx';
 
 function App() {
   const [role, setRole] = useState<'Admin' | 'Employee'>('Admin');

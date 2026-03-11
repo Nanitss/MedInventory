@@ -41,6 +41,7 @@ interface AppContextType {
     addRequest: (req: Omit<EmployeeRequest, 'id' | 'requestDate' | 'status'>) => void;
     addManualApprovedRequest: (req: Omit<EmployeeRequest, 'id' | 'requestDate' | 'status'>) => void;
     editRequest: (id: string, updates: Partial<EmployeeRequest>) => void;
+    editRequestWithInventory: (id: string, updates: Partial<EmployeeRequest>) => void;
     approveRequest: (requestId: string) => void;
     rejectRequest: (requestId: string) => void;
 
@@ -235,6 +236,73 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setRequests(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
     };
 
+    // Reconciles inventory when editing a request
+    const editRequestWithInventory = (id: string, updates: Partial<EmployeeRequest>) => {
+        setRequests(prevReqs => {
+            const existing = prevReqs.find(r => r.id === id);
+            if (!existing) return prevReqs;
+
+            const oldStatus = existing.status;
+            const newStatus = updates.status || oldStatus;
+            const oldItems = existing.items;
+            const newItems = updates.items || oldItems;
+
+            setInventory(prevInv => {
+                let nextInv = prevInv.map(b => ({ ...b }));
+
+                // Case 1: Was Approved, now NOT Approved (Restore all old items)
+                if (oldStatus === 'Approved' && newStatus !== 'Approved') {
+                    for (const item of oldItems) {
+                        let toRestore = item.quantity;
+                        for (const batch of nextInv.filter(b => b.scientificName.toLowerCase() === item.medicineName.toLowerCase()).sort((a, b) => new Date(b.addedDate).getTime() - new Date(a.addedDate).getTime())) {
+                            if (toRestore <= 0) break;
+                            batch.quantity += toRestore;
+                            toRestore = 0;
+                        }
+                    }
+                }
+                // Case 2: Was NOT Approved, now Approved (Deduct all new items)
+                else if (oldStatus !== 'Approved' && newStatus === 'Approved') {
+                    for (const item of newItems) {
+                        let remaining = item.quantity;
+                        for (const batch of nextInv.filter(b => b.scientificName.toLowerCase() === item.medicineName.toLowerCase() && b.quantity > 0).sort((a, b) => new Date(a.addedDate).getTime() - new Date(b.addedDate).getTime())) {
+                            if (remaining <= 0) break;
+                            const deduct = Math.min(batch.quantity, remaining);
+                            batch.quantity -= deduct;
+                            remaining -= deduct;
+                        }
+                    }
+                }
+                // Case 3: Was Approved, staying Approved, but items changed (Restore old, deduct new)
+                else if (oldStatus === 'Approved' && newStatus === 'Approved' && updates.items) {
+                    // Restore old
+                    for (const item of oldItems) {
+                        let toRestore = item.quantity;
+                        for (const batch of nextInv.filter(b => b.scientificName.toLowerCase() === item.medicineName.toLowerCase()).sort((a, b) => new Date(b.addedDate).getTime() - new Date(a.addedDate).getTime())) {
+                            if (toRestore <= 0) break;
+                            batch.quantity += toRestore;
+                            toRestore = 0;
+                        }
+                    }
+                    // Deduct new
+                    for (const item of newItems) {
+                        let remaining = item.quantity;
+                        for (const batch of nextInv.filter(b => b.scientificName.toLowerCase() === item.medicineName.toLowerCase() && b.quantity > 0).sort((a, b) => new Date(a.addedDate).getTime() - new Date(b.addedDate).getTime())) {
+                            if (remaining <= 0) break;
+                            const deduct = Math.min(batch.quantity, remaining);
+                            batch.quantity -= deduct;
+                            remaining -= deduct;
+                        }
+                    }
+                }
+
+                return nextInv;
+            });
+
+            return prevReqs.map(r => r.id === id ? { ...r, ...updates } : r);
+        });
+    };
+
     // Helper logic to deduct items from inventory FIFO
     const processInventoryDeduction = (items: RequestItem[]) => {
         setInventory(prevInv => {
@@ -304,7 +372,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     return (
-        <AppContext.Provider value={{ inventory, requests, medicalRecords, employees, disposedMedicines, addMedicine, editMedicine, disposeMedicine, addRequest, addManualApprovedRequest, editRequest, addMedicalRecord, editMedicalRecord, addEmployee, editEmployee, approveRequest, rejectRequest, modalState, openModal, closeModal }}>
+        <AppContext.Provider value={{ inventory, requests, medicalRecords, employees, disposedMedicines, addMedicine, editMedicine, disposeMedicine, addRequest, addManualApprovedRequest, editRequest, editRequestWithInventory, addMedicalRecord, editMedicalRecord, addEmployee, editEmployee, approveRequest, rejectRequest, modalState, openModal, closeModal }}>
             {children}
         </AppContext.Provider>
     );

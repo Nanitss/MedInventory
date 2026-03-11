@@ -30,7 +30,7 @@ const ModalBody = ({ type, data, onClose, context }: any) => {
         case 'EDIT_MEDICAL_RECORD': return <EditMedicalRecordBody onClose={onClose} editMedicalRecord={context.editMedicalRecord} data={data} inventory={context.inventory} employees={context.employees} />;
         case 'ADD_ADMIN_REQUEST': return <AddAdminRequestBody onClose={onClose} addManualApprovedRequest={context.addManualApprovedRequest} inventory={context.inventory} employees={context.employees} />;
         case 'REQUEST_MEDICINE': return <RequestMedicineBody onClose={onClose} addRequest={context.addRequest} inventory={context.inventory} employees={context.employees} />;
-        case 'EDIT_REQUEST': return <EditRequestBody onClose={onClose} editRequest={context.editRequest} data={data} />;
+        case 'EDIT_REQUEST': return <EditRequestBody onClose={onClose} data={data} />;
         case 'VIEW_MEDICAL_HISTORY': return <ViewMedicalHistoryBody onClose={onClose} employee={data} medicalRecords={context.medicalRecords} />;
         case 'VIEW_MEDICAL_INFO': return <ViewMedicalInfoBody onClose={onClose} employee={data} context={context} />;
         case 'VIEW_REMARKS': return <ViewRemarksBody onClose={onClose} record={data} />;
@@ -382,25 +382,149 @@ const RequestMedicineBody = ({ onClose, addRequest, inventory, employees }: any)
     );
 };
 
-const EditRequestBody = ({ onClose, editRequest, data }: any) => {
-    // Basic editing of Reason - in a real app might edit items too, but keep simple
-    const [reason, setReason] = useState(data.reason);
+const EditRequestBody = ({ onClose, data }: any) => {
+    const { editRequestWithInventory, employees, inventory } = useAppContext();
+
+    const [employeeName, setEmployeeName] = useState(data.employeeName);
+    const [items, setItems] = useState<{ medicineName: string; quantity: number }[]>(
+        data.items?.length ? data.items.map((i: any) => ({ ...i })) : [{ medicineName: '', quantity: 1 }]
+    );
+    const [reason, setReason] = useState(data.reason || '');
+    const [requestDate, setRequestDate] = useState(data.requestDate ? data.requestDate.slice(0, 16) : '');
+    const [status, setStatus] = useState(data.status);
+
+    const medicineNames = Array.from(new Set(inventory.map(b => b.scientificName))).sort();
+
+    const updateItem = (idx: number, field: 'medicineName' | 'quantity', value: string | number) => {
+        setItems(prev => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item));
+    };
+
+    const addItem = () => setItems(prev => [...prev, { medicineName: '', quantity: 1 }]);
+    const removeItem = (idx: number) => setItems(prev => prev.filter((_, i) => i !== idx));
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        editRequest(data.id, { reason });
+        const validItems = items.filter(i => i.medicineName.trim());
+        editRequestWithInventory(data.id, {
+            employeeName,
+            items: validItems,
+            reason,
+            requestDate: requestDate ? new Date(requestDate).toISOString() : data.requestDate,
+            status,
+        });
         onClose();
     };
+
     return (
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md min-h-[350px] overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
-            <div className="bg-brand-blue-50 px-6 py-4 border-b border-brand-blue-100 flex items-center justify-between shrink-0"><h3 className="font-bold text-brand-blue-900 text-lg">Edit Request Details</h3><button type="button" onClick={onClose} className="text-brand-blue-500 hover:text-brand-blue-800"><X size={20} /></button></div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 flex flex-col flex-1">
-                <p className="text-sm text-slate-600">Editing request reason for <strong>{data.employeeName}</strong>.</p>
-                <div className="flex-1 flex flex-col"><label className="block text-sm font-semibold text-slate-700 mb-1">Reason / Symptoms</label><textarea required value={reason} onChange={e => setReason(e.target.value)} className="w-full h-full min-h-[120px] border rounded-md px-3 py-2 text-sm resize-none" /></div>
-                <div className="pt-2 flex justify-end gap-3"><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button type="submit" variant="primary">Save</Button></div>
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
+            <div className="bg-brand-blue-50 px-6 py-4 border-b border-brand-blue-100 flex items-center justify-between shrink-0">
+                <h3 className="font-bold text-brand-blue-900 text-lg">Edit Request Details</h3>
+                <button type="button" onClick={onClose} className="text-brand-blue-500 hover:text-brand-blue-800"><X size={20} /></button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[75vh]">
+                {/* Employee Name */}
+                <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Employee Name</label>
+                    <select
+                        value={employeeName}
+                        onChange={e => setEmployeeName(e.target.value)}
+                        className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white"
+                        required
+                    >
+                        {employees.map(emp => (
+                            <option key={emp.id} value={emp.name}>{emp.name}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Medicine Items */}
+                <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Medicine Items</label>
+                    <div className="space-y-2">
+                        {items.map((item, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                                <select
+                                    value={item.medicineName}
+                                    onChange={e => updateItem(idx, 'medicineName', e.target.value)}
+                                    className="flex-1 border border-slate-300 rounded-md px-3 py-2 text-sm bg-white"
+                                    required
+                                >
+                                    <option value="">Select medicine...</option>
+                                    {medicineNames.map(name => (
+                                        <option key={name} value={name}>{name}</option>
+                                    ))}
+                                </select>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    value={item.quantity}
+                                    onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value) || 1)}
+                                    className="w-20 border border-slate-300 rounded-md px-3 py-2 text-sm"
+                                    required
+                                />
+                                {items.length > 1 && (
+                                    <button type="button" onClick={() => removeItem(idx)} className="text-red-500 hover:text-red-700 p-1">
+                                        <Trash2 size={16} />
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                    <button type="button" onClick={addItem} className="mt-2 flex items-center gap-1 text-sm text-brand-blue hover:text-brand-blue-dark font-medium">
+                        <Plus size={14} /> Add Medicine
+                    </button>
+                    {data.status === 'Approved' && (
+                        <p className="mt-1 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                            ⚠ This request is Approved — changing medicines will update the inventory.
+                        </p>
+                    )}
+                </div>
+
+                {/* Status */}
+                <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Status</label>
+                    <select
+                        value={status}
+                        onChange={e => setStatus(e.target.value)}
+                        className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white"
+                    >
+                        <option value="Pending">Pending</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+
+                {/* Request Date */}
+                <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Request Date</label>
+                    <input
+                        type="datetime-local"
+                        value={requestDate}
+                        onChange={e => setRequestDate(e.target.value)}
+                        className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm"
+                    />
+                </div>
+
+                {/* Reason */}
+                <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Reason / Symptoms</label>
+                    <textarea
+                        value={reason}
+                        onChange={e => setReason(e.target.value)}
+                        className="w-full min-h-[80px] border border-slate-300 rounded-md px-3 py-2 text-sm resize-none"
+                        placeholder="Optional reason..."
+                    />
+                </div>
+
+                <div className="pt-2 flex justify-end gap-3">
+                    <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+                    <Button type="submit" variant="primary">Save Changes</Button>
+                </div>
             </form>
         </div>
     );
 }
+
 
 /* --- VIEW MEDICAL HISTORY --- */
 const ViewMedicalHistoryBody = ({ onClose, employee, medicalRecords }: any) => {
