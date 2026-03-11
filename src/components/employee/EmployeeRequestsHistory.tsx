@@ -27,7 +27,7 @@ export const EmployeeRequestsHistory = () => {
                 {employeeRequests.map((req) => (
                     <Card key={req.id} className="p-5 border-l-4 hover:shadow-md transition-shadow bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-l-brand-blue">
                         <div className="space-y-1">
-                            <h4 className="font-bold text-slate-800 text-lg">{req.medicineRequested}</h4>
+                            <h4 className="font-bold text-slate-800 text-lg">{req.items.map((i: any) => `${i.quantity}x ${i.medicineName}`).join(', ')}</h4>
                             <p className="text-sm text-slate-500 flex items-center gap-1.5">
                                 <Clock size={14} />
                                 {format(new Date(req.requestDate), 'MMM dd, yyyy h:mm a')}
@@ -63,6 +63,6 @@ export const EmployeeRequestsHistory = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };

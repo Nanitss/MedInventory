@@ -29,25 +29,7 @@ export const AppLayout = ({ children, userRole, onRoleSwitch }: AppLayoutProps) 
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <div className="hidden sm:flex flex-col items-end">
-                            <span className="text-xs text-brand-blue-200 uppercase tracking-widest font-semibold">
-                                Perspective
-                            </span>
-                            <span className="text-sm font-bold text-white">
-                                {userRole}
-                            </span>
-                        </div>
-                        <Button
-                            variant="secondary"
-                            size="sm"
-                            className="gap-2 ml-4 font-semibold"
-                            onClick={onRoleSwitch}
-                        >
-                            <Repeat size={16} />
-                            Switch <span className="hidden sm:inline">Role</span>
-                        </Button>
-                    </div>
+                    {/* Switch Role and Perspective hidden for now */}
                 </div>
             </header>
 
@@ -57,7 +39,7 @@ export const AppLayout = ({ children, userRole, onRoleSwitch }: AppLayoutProps) 
 
             <footer className="bg-white border-t border-slate-200 py-6 mt-auto shadow-inner">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
-                    <p>&copy; {new Date().getFullYear()} Baliwag Water District. Frontend Only Prototype.</p>
+                    <p>&copy; {new Date().getFullYear()} Baliwag Water District.</p>
                 </div>
             </footer>
         </div>

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useAppContext } from '../../lib/context';
 import { Button, Card } from '../ui/primitives';
-import { format } from 'date-fns';
-import { PlusCircle, Thermometer, Droplets, Activity, FileText, FileDown, Filter } from 'lucide-react';
+import { format, differenceInDays } from 'date-fns';
+import { PlusCircle, Thermometer, Droplets, Activity, FileText, FileDown, Filter, Edit3, AlertCircle } from 'lucide-react';
 import { FilterModal, type FilterField } from '../ui/FilterModal';
 import { exportToPdf } from '../../utils/exportPdf';
 
@@ -15,7 +15,7 @@ export const EmployeeRecordsTab = () => {
     const uniqueMeds = Array.from(new Set(medicalRecords.map(r => r.medicineGiven).filter(Boolean) as string[])).sort();
 
     const filterFields: FilterField[] = [
-        { key: 'date', label: 'Date', type: 'date' },
+        { key: 'recordMonth', label: 'Record Month', type: 'month' },
         { key: 'employeeName', label: 'Employee Name', type: 'select', options: uniqueNames },
         { key: 'tempRange', label: 'Temperature Range', type: 'select', options: ['Normal (≤ 37.5°C)', 'Fever (> 37.5°C)'] },
         { key: 'bpRange', label: 'Blood Pressure', type: 'select', options: ['Low / Hypotension', 'Normal', 'Elevated / Hypertension'] },
@@ -23,10 +23,46 @@ export const EmployeeRecordsTab = () => {
         { key: 'medicineGiven', label: 'Medicine Given', type: 'select', options: uniqueMeds }
     ];
 
+    // Calculate Employee Risks (3 high records in 7-day window)
+    const analyzeEmployeeRisks = (records: any[]) => {
+        const employeeRisks = new Map<string, { bp: boolean, temp: boolean, pulse: boolean }>();
+        const recordsByEmp = records.reduce((acc: any, rec: any) => {
+            if (!acc[rec.employeeName]) acc[rec.employeeName] = [];
+            acc[rec.employeeName].push(rec);
+            return acc;
+        }, {});
+
+        Object.entries(recordsByEmp).forEach(([name, empRecords]: [string, any]) => {
+            let hasHighBp = false; let hasHighTemp = false; let hasHighPulse = false;
+            const sorted = [...empRecords].sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            for (let i = 0; i < sorted.length; i++) {
+                const currentRecDate = new Date(sorted[i].date);
+                let bpCount = 0; let tempCount = 0; let pulseCount = 0;
+                for (let j = i; j < sorted.length; j++) {
+                    const checkedDate = new Date(sorted[j].date);
+                    if (differenceInDays(checkedDate, currentRecDate) > 7) break;
+                    if (sorted[j].systolic >= 140 || sorted[j].diastolic >= 90) bpCount++;
+                    if (sorted[j].temperature > 37.5) tempCount++;
+                    const pulse = parseInt(sorted[j].pulseRate, 10);
+                    if (!isNaN(pulse) && pulse > 100) pulseCount++;
+                }
+                if (bpCount >= 3) hasHighBp = true;
+                if (tempCount >= 3) hasHighTemp = true;
+                if (pulseCount >= 3) hasHighPulse = true;
+                if (hasHighBp && hasHighTemp && hasHighPulse) break;
+            }
+            if (hasHighBp || hasHighTemp || hasHighPulse) {
+                employeeRisks.set(name, { bp: hasHighBp, temp: hasHighTemp, pulse: hasHighPulse });
+            }
+        });
+        return employeeRisks;
+    };
+    const risks = analyzeEmployeeRisks(medicalRecords);
+
     // Sort newest first
     const sortedRecords = [...medicalRecords]
         .filter(record => {
-            const matchDate = !filters.date || format(new Date(record.date), 'yyyy-MM-dd') === filters.date;
+            const matchDate = !filters.recordMonth || record.date.startsWith(filters.recordMonth);
             const matchName = !filters.employeeName || record.employeeName === filters.employeeName;
 
             let matchTemp = true;
@@ -54,7 +90,13 @@ export const EmployeeRecordsTab = () => {
 
             return matchDate && matchName && matchTemp && matchBp && matchPulse && matchMed;
         })
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        .sort((a, b) => {
+            const aRisk = risks.has(a.employeeName);
+            const bRisk = risks.has(b.employeeName);
+            if (aRisk && !bRisk) return -1;
+            if (!aRisk && bRisk) return 1;
+            return new Date(b.date).getTime() - new Date(a.date).getTime();
+        });
 
     const handleExportPdf = () => {
         const headers = ['Date', 'Employee Name', 'Temp (°C)', 'BP (mmHg)', 'Pulse Rate', 'Remarks', 'Medicine Given'];
@@ -114,7 +156,7 @@ export const EmployeeRecordsTab = () => {
                                 <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Temperature</th>
                                 <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Blood Pressure</th>
                                 <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Pulse Rate</th>
-                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold text-center">Remarks</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -125,51 +167,65 @@ export const EmployeeRecordsTab = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                sortedRecords.map((record) => (
-                                    <tr key={record.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                                        <td className="py-3 px-6 text-slate-600 text-sm font-medium">
-                                            {format(new Date(record.date), 'MMM dd, yyyy h:mm a')}
-                                        </td>
-                                        <td className="py-3 px-6 font-semibold text-slate-800">
-                                            {record.employeeName}
-                                        </td>
-                                        <td className="py-3 px-6">
-                                            <div className="flex items-center gap-2">
-                                                <Thermometer size={16} className={record.temperature > 37.5 ? 'text-red-500' : 'text-slate-400'} />
-                                                <span className={`font-medium ${record.temperature > 37.5 ? 'text-red-600' : 'text-slate-700'}`}>
-                                                    {record.temperature}°C
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="py-3 px-6">
-                                            <div className="flex items-center gap-2">
-                                                <Droplets size={16} className="text-slate-400" />
-                                                <span className="font-medium text-slate-700">
-                                                    {record.systolic} / {record.diastolic} <span className="text-xs text-slate-400">mmHg</span>
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="py-3 px-6">
-                                            <div className="flex items-center gap-2">
-                                                <Activity size={16} className="text-slate-400" />
-                                                <span className="font-medium text-slate-700">
-                                                    {record.pulseRate || '--'} <span className="text-xs text-slate-400">bpm</span>
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="py-3 px-6 text-center">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-8 px-2 text-brand-blue border border-brand-blue-200 hover:bg-brand-blue-50"
-                                                onClick={() => openModal('VIEW_REMARKS', record)}
-                                            >
-                                                <FileText size={16} />
-                                                <span className="ml-1 text-xs">View</span>
-                                            </Button>
-                                        </td>
-                                    </tr>
-                                ))
+                                sortedRecords.map((record) => {
+                                    const riskInfo = risks.get(record.employeeName);
+                                    let highlightClass = "text-slate-800";
+                                    let tooltipText = "";
+
+                                    if (riskInfo) {
+                                        if (riskInfo.bp) { highlightClass = "text-red-600 font-bold"; tooltipText = "3+ High BP in a week"; }
+                                        else if (riskInfo.temp) { highlightClass = "text-blue-600 font-bold"; tooltipText = "3+ High Temp in a week"; }
+                                        else if (riskInfo.pulse) { highlightClass = "text-yellow-600 font-bold"; tooltipText = "3+ High Pulse in a week"; }
+                                    }
+
+                                    let bpColor = "text-slate-700";
+                                    if (record.systolic >= 140 || record.diastolic >= 90) bpColor = "text-red-600";
+                                    else if (record.systolic <= 90 || record.diastolic <= 60) bpColor = "text-blue-600";
+
+                                    return (
+                                        <tr key={record.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                                            <td className="py-3 px-6 text-slate-600 text-sm font-medium">
+                                                {format(new Date(record.date), 'MMM dd, yyyy h:mm a')}
+                                            </td>
+                                            <td className="py-3 px-6 font-semibold" title={tooltipText}>
+                                                <div className="flex items-center gap-1.5">
+                                                    {riskInfo && <AlertCircle size={14} className={highlightClass} />}
+                                                    <span className={`${highlightClass} flex-1`}>{record.employeeName}</span>
+                                                </div>
+                                            </td>
+                                            <td className="py-3 px-6">
+                                                <div className="flex items-center gap-2">
+                                                    <Thermometer size={16} className={record.temperature > 37.5 ? 'text-red-500' : 'text-slate-400'} />
+                                                    <span className={`font-medium ${record.temperature > 37.5 ? 'text-red-600' : 'text-slate-700'}`}>
+                                                        {record.temperature}°C
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="py-3 px-6">
+                                                <div className="flex items-center gap-2">
+                                                    <Droplets size={16} className={bpColor} />
+                                                    <span className={`font-medium ${bpColor}`}>
+                                                        {record.systolic} / {record.diastolic} <span className="text-xs opacity-70">mmHg</span>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="py-3 px-6">
+                                                <div className="flex items-center gap-2">
+                                                    <Activity size={16} className="text-slate-400" />
+                                                    <span className="font-medium text-slate-700">
+                                                        {record.pulseRate || '--'} <span className="text-xs text-slate-400">bpm</span>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="py-3 px-6 text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Button variant="ghost" size="sm" className="h-8 px-2 text-brand-blue hover:bg-brand-blue-50" onClick={() => openModal('VIEW_REMARKS', record)} title="View Remarks"><FileText size={16} /></Button>
+                                                    <Button variant="ghost" size="sm" className="h-8 px-2 text-brand-blue hover:bg-brand-blue-50" onClick={() => openModal('EDIT_MEDICAL_RECORD', record)} title="Edit Record"><Edit3 size={16} /></Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAppContext } from '../../lib/context';
 import { Button, Card, Badge } from '../ui/primitives';
-import { PlusCircle, AlertTriangle, FileDown, Filter } from 'lucide-react';
+import { PlusCircle, AlertTriangle, FileDown, Filter, Edit3, Trash2 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { exportToPdf } from '../../utils/exportPdf';
 import { FilterModal, type FilterField } from '../ui/FilterModal';
@@ -16,6 +16,7 @@ export const InventoryTable = () => {
     const uniqueIllnesses = Array.from(new Set(inventory.map(m => m.illness))).sort();
 
     const filterFields: FilterField[] = [
+        { key: 'addedMonth', label: 'Added Month', type: 'month' },
         { key: 'genericName', label: 'Generic Name', type: 'select', options: uniqueNames },
         { key: 'brand', label: 'Brand Name', type: 'select', options: uniqueBrands },
         { key: 'illness', label: 'Illness / Use', type: 'select', options: uniqueIllnesses }
@@ -24,11 +25,12 @@ export const InventoryTable = () => {
     // Sorting & Filtering Logic: Expiring soon (<= 30 days) on top, then by oldest added
     const sortedInventory = [...inventory]
         .filter(med => {
+            const matchMonth = !filters.addedMonth || med.addedDate.startsWith(filters.addedMonth);
             const matchName = !filters.genericName || med.scientificName === filters.genericName;
             const matchBrand = !filters.brand || med.brand === filters.brand;
             const matchIllness = !filters.illness || med.illness === filters.illness;
 
-            return matchName && matchBrand && matchIllness;
+            return matchMonth && matchName && matchBrand && matchIllness;
         })
         .sort((a, b) => {
             const isAExpiring = differenceInDays(new Date(a.expiryDate), new Date()) <= 30;
@@ -113,13 +115,14 @@ export const InventoryTable = () => {
                                 <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Illness/Use</th>
                                 <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Added Date</th>
                                 <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Expiry Date</th>
-                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold text-right">Qty</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold text-center">Qty</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {sortedInventory.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="py-8 text-center text-slate-500">
+                                    <td colSpan={8} className="py-8 text-center text-slate-500">
                                         No medicines in inventory
                                     </td>
                                 </tr>
@@ -160,8 +163,14 @@ export const InventoryTable = () => {
                                                     ) : null}
                                                 </div>
                                             </td>
-                                            <td className="py-3 px-6 text-right font-bold text-slate-800 text-lg">
+                                            <td className="py-3 px-6 text-center font-bold text-slate-800 text-lg">
                                                 {med.quantity}
+                                            </td>
+                                            <td className="py-3 px-6 text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Button variant="ghost" size="sm" onClick={() => openModal('EDIT_MEDICINE', med)} className="h-8 px-2 text-brand-blue border border-brand-blue-200 hover:bg-brand-blue-50" title="Edit Medicine"><Edit3 size={16} /></Button>
+                                                    {isExpired && <Button variant="ghost" size="sm" onClick={() => openModal('DISPOSE_MEDICINE', med)} className="h-8 px-2 text-red-600 border border-red-200 hover:bg-red-50" title="Dispose Expired Medicine"><Trash2 size={16} /></Button>}
+                                                </div>
                                             </td>
                                         </tr>
                                     )

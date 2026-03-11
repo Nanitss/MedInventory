@@ -1,9 +1,44 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAppContext } from '../../lib/context';
 import { Button, Card, Badge } from '../ui/primitives';
-import { PlusCircle, FileDown, Filter, FileText } from 'lucide-react';
+import { PlusCircle, FileDown, Filter, FileText, Edit3, MoreVertical, Pill } from 'lucide-react';
 import { FilterModal, type FilterField } from '../ui/FilterModal';
 import { exportToPdf } from '../../utils/exportPdf';
+import { createPortal } from 'react-dom';
+
+const ActionMenu = ({ emp, openModal }: { emp: any, openModal: any }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [menuPos, setMenuPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+    const btnRef = useRef<HTMLButtonElement>(null);
+
+    useEffect(() => {
+        if (isOpen && btnRef.current) {
+            const rect = btnRef.current.getBoundingClientRect();
+            setMenuPos({
+                top: rect.bottom + 4,
+                left: rect.right - 192, // 192px = w-48
+            });
+        }
+    }, [isOpen]);
+
+    return (
+        <>
+            <Button ref={btnRef} variant="ghost" size="sm" onClick={() => setIsOpen(!isOpen)} className="h-8 w-8 p-0 text-slate-500 hover:bg-slate-100"><MoreVertical size={16} /></Button>
+            {isOpen && createPortal(
+                <>
+                    <div className="fixed inset-0 z-[90]" onClick={() => setIsOpen(false)}></div>
+                    <div className="fixed w-48 bg-white border border-slate-200 shadow-lg rounded-md overflow-hidden z-[91]" style={{ top: menuPos.top, left: menuPos.left }}>
+                        <button onClick={() => { openModal('VIEW_MEDICAL_HISTORY', emp); setIsOpen(false); }} className="w-full text-left px-4 py-2 flex items-center gap-2 text-sm text-slate-700 hover:bg-slate-50"><FileText size={14} /> Consultations</button>
+                        <button onClick={() => { openModal('VIEW_MEDICAL_INFO', emp); setIsOpen(false); }} className="w-full text-left px-4 py-2 flex items-center gap-2 text-sm text-slate-700 hover:bg-slate-50"><FileText size={14} /> Medical Info</button>
+                        <button onClick={() => { openModal('VIEW_GIVEN_MEDICINES', emp); setIsOpen(false); }} className="w-full text-left px-4 py-2 flex items-center gap-2 text-sm text-slate-700 hover:bg-slate-50"><Pill size={14} /> Given Medicines</button>
+                        <button onClick={() => { openModal('EDIT_EMPLOYEE', emp); setIsOpen(false); }} className="w-full text-left px-4 py-2 flex items-center gap-2 text-sm text-brand-blue hover:bg-brand-blue-50 border-t border-slate-100"><Edit3 size={14} /> Edit Employee</button>
+                    </div>
+                </>,
+                document.body
+            )}
+        </>
+    );
+};
 
 export const EmployeeListTab = () => {
     const { employees, openModal } = useAppContext();
@@ -86,7 +121,7 @@ export const EmployeeListTab = () => {
                                 <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Gender</th>
                                 <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Contact No.</th>
                                 <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold">Address</th>
-                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold text-center">Medical Record</th>
+                                <th className="py-3 px-3 sm:py-4 sm:px-6 font-semibold text-center w-24">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -115,27 +150,8 @@ export const EmployeeListTab = () => {
                                             {emp.address}
                                         </td>
                                         <td className="py-3 px-6 text-center">
-                                            <div className="flex items-center justify-center gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-8 gap-1.5 text-brand-blue border-brand-blue-200 hover:bg-brand-blue-50"
-                                                    onClick={() => openModal('VIEW_MEDICAL_HISTORY', emp)}
-                                                    title="Consultation Records"
-                                                >
-                                                    <FileText size={14} />
-                                                    <span className="hidden xl:inline">Consultations</span>
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-8 gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-                                                    onClick={() => openModal('VIEW_MEDICAL_INFO', emp)}
-                                                    title="Medical Information"
-                                                >
-                                                    <FileText size={14} />
-                                                    <span className="hidden xl:inline">Medical Info</span>
-                                                </Button>
+                                            <div className="flex items-center justify-center">
+                                                <ActionMenu emp={emp} openModal={openModal} />
                                             </div>
                                         </td>
                                     </tr>

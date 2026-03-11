@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAppContext } from '../../lib/context';
 import { Button, Card, Badge } from '../ui/primitives';
 import { format } from 'date-fns';
-import { Check, X, FileDown, Filter, PlusCircle } from 'lucide-react';
+import { Check, X, FileDown, Filter, PlusCircle, Edit3 } from 'lucide-react';
 import { FilterModal, type FilterField } from '../ui/FilterModal';
 import { exportToPdf } from '../../utils/exportPdf';
 
@@ -13,22 +13,21 @@ export const RequestsTab = () => {
     const [filters, setFilters] = useState<Record<string, string>>({});
 
     const uniqueNames = Array.from(new Set(requests.map(r => r.employeeName))).sort();
-    const uniqueMeds = Array.from(new Set(requests.map(r => r.medicineRequested))).sort();
 
     const filterFields: FilterField[] = [
+        { key: 'requestMonth', label: 'Request Month', type: 'month' },
         { key: 'employeeName', label: 'Employee Name', type: 'select', options: uniqueNames },
-        { key: 'medicine', label: 'Medicine Requested', type: 'select', options: uniqueMeds },
         { key: 'status', label: 'Status', type: 'select', options: ['Pending', 'Approved', 'Rejected'] }
     ];
 
     // Sort requests: Pending first, then by date (newest first)
     const sortedRequests = [...requests]
         .filter(req => {
+            const matchMonth = !filters.requestMonth || req.requestDate.startsWith(filters.requestMonth);
             const matchName = !filters.employeeName || req.employeeName === filters.employeeName;
-            const matchMed = !filters.medicine || req.medicineRequested === filters.medicine;
             const matchStatus = !filters.status || req.status === filters.status;
 
-            return matchName && matchMed && matchStatus;
+            return matchMonth && matchName && matchStatus;
         })
         .sort((a, b) => {
             if (a.status === 'Pending' && b.status !== 'Pending') return -1;
@@ -37,10 +36,10 @@ export const RequestsTab = () => {
         });
 
     const handleExportPdf = () => {
-        const headers = ['Employee Name', 'Medicine Requested', 'Reason / Symptoms', 'Request Date', 'Status'];
+        const headers = ['Employee Name', 'Items Requested', 'Reason / Symptoms', 'Request Date', 'Status'];
         const data = sortedRequests.map(req => [
             req.employeeName,
-            req.medicineRequested,
+            req.items ? req.items.map((i: any) => `${i.quantity}x ${i.medicineName}`).join(', ') : '',
             req.reason || 'N/A',
             format(new Date(req.requestDate), 'MMM dd, yyyy h:mm a'),
             req.status
@@ -58,7 +57,7 @@ export const RequestsTab = () => {
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <div>
-                    <h3 className="text-lg font-bold text-slate-800">Employee Requests</h3>
+                    <h3 className="text-lg font-bold text-slate-800">Employee Medicine</h3>
                     <div className="flex flex-wrap items-center gap-2 mt-1">
                         <p className="text-sm text-slate-500">Review and manage medicine requests from employees</p>
                         {Object.keys(filters).length > 0 && (
@@ -103,12 +102,10 @@ export const RequestsTab = () => {
                                 </tr>
                             ) : (
                                 sortedRequests.map((req) => {
-                                    // Check stock availability
-                                    const totalStock = inventory
-                                        .filter(b => b.scientificName.toLowerCase() === req.medicineRequested.toLowerCase())
-                                        .reduce((acc, curr) => acc + curr.quantity, 0);
-
-                                    const outOfStock = totalStock === 0 && req.status === 'Pending';
+                                    const outOfStock = req.items && req.items.some(item => {
+                                        const available = inventory.filter(b => b.scientificName.toLowerCase() === item.medicineName.toLowerCase()).reduce((a, b) => a + b.quantity, 0);
+                                        return available < item.quantity;
+                                    }) && req.status === 'Pending';
 
                                     return (
                                         <tr key={req.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
@@ -116,12 +113,16 @@ export const RequestsTab = () => {
                                                 {req.employeeName}
                                             </td>
                                             <td className="py-3 px-6 text-brand-blue-900 font-medium tracking-wide">
-                                                <div>
-                                                    {req.medicineRequested}
-                                                    {outOfStock && <span className="ml-2 text-xs text-red-500 font-normal bg-red-50 px-2 py-0.5 rounded-full border border-red-100">Out of Stock</span>}
+                                                <div className="space-y-1">
+                                                    {req.items?.map((item, idx) => (
+                                                        <div key={idx} className="flex justify-between items-center text-sm border-b border-brand-blue-100 last:border-0 pb-1 last:pb-0">
+                                                            <span>{item.quantity}x {item.medicineName}</span>
+                                                        </div>
+                                                    )) || ''}
+                                                    {outOfStock && <span className="text-[10px] text-red-500 font-normal bg-red-50 px-2 py-0.5 rounded-full border border-red-100 mt-1 inline-block">Insufficient Stock</span>}
                                                 </div>
                                                 {req.reason && (
-                                                    <div className="mt-1 text-xs text-slate-500 font-normal italic border-l-2 border-brand-blue-200 pl-2">
+                                                    <div className="mt-2 text-xs text-slate-500 font-normal italic border-l-2 border-brand-blue-200 pl-2">
                                                         "{req.reason}"
                                                     </div>
                                                 )}
@@ -135,33 +136,34 @@ export const RequestsTab = () => {
                                                 {req.status === 'Rejected' && <Badge variant="error">Rejected</Badge>}
                                             </td>
                                             <td className="py-3 px-6 text-right">
-                                                {req.status === 'Pending' ? (
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 px-2"
-                                                            onClick={() => rejectRequest(req.id)}
-                                                        >
-                                                            <X size={18} />
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="primary"
-                                                            className="bg-emerald-600 hover:bg-emerald-700 h-8 px-3"
-                                                            disabled={outOfStock}
-                                                            onClick={() => approveRequest(req.id)}
-                                                        >
-                                                            <Check size={16} className="mr-1.5" />
-                                                            Approve
-                                                        </Button>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-sm text-slate-400 italic">Processed</span>
-                                                )}
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Button variant="ghost" size="sm" onClick={() => openModal('EDIT_REQUEST', req)} className="h-8 px-2 text-brand-blue hover:bg-brand-blue-50" title="Edit Request"><Edit3 size={16} /></Button>
+                                                    {req.status === 'Pending' && (
+                                                        <div className="flex items-center justify-end gap-1">
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 px-2"
+                                                                onClick={() => rejectRequest(req.id)}
+                                                            >
+                                                                <X size={18} />
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="primary"
+                                                                className="bg-emerald-600 hover:bg-emerald-700 h-8 px-3"
+                                                                disabled={outOfStock}
+                                                                onClick={() => approveRequest(req.id)}
+                                                            >
+                                                                <Check size={16} className="mr-1.5" />
+                                                                Approve
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
-                                    )
+                                    );
                                 })
                             )}
                         </tbody>

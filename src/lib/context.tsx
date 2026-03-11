@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { MedicineBatch, EmployeeRequest, MedicalRecord, Employee } from '../types';
+import type { MedicineBatch, EmployeeRequest, MedicalRecord, Employee, RequestItem, DisposedMedicine } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { addDays, subDays } from 'date-fns';
 
@@ -12,7 +12,12 @@ export type ModalType =
     | 'ADD_MEDICAL_RECORD'
     | 'VIEW_MEDICAL_HISTORY'
     | 'VIEW_MEDICAL_INFO'
-    | 'VIEW_REMARKS';
+    | 'VIEW_REMARKS'
+    | 'EDIT_MEDICINE'
+    | 'EDIT_MEDICAL_RECORD'
+    | 'EDIT_REQUEST'
+    | 'EDIT_EMPLOYEE'
+    | 'DISPOSE_MEDICINE';
 
 export interface ModalState {
     type: ModalType;
@@ -24,17 +29,26 @@ interface AppContextType {
     requests: EmployeeRequest[];
     medicalRecords: MedicalRecord[];
     employees: Employee[];
+    disposedMedicines: DisposedMedicine[];
     modalState: ModalState;
     openModal: (type: ModalType, data?: any) => void;
     closeModal: () => void;
 
     addMedicine: (med: Omit<MedicineBatch, 'id' | 'addedDate'>) => void;
+    editMedicine: (id: string, updates: Partial<MedicineBatch>) => void;
+    disposeMedicine: (id: string, qty: number) => void;
+
     addRequest: (req: Omit<EmployeeRequest, 'id' | 'requestDate' | 'status'>) => void;
     addManualApprovedRequest: (req: Omit<EmployeeRequest, 'id' | 'requestDate' | 'status'>) => void;
-    addMedicalRecord: (record: Omit<MedicalRecord, 'id' | 'date'>) => void;
-    addEmployee: (emp: Omit<Employee, 'id'>) => void;
+    editRequest: (id: string, updates: Partial<EmployeeRequest>) => void;
     approveRequest: (requestId: string) => void;
     rejectRequest: (requestId: string) => void;
+
+    addMedicalRecord: (record: Omit<MedicalRecord, 'id' | 'date'>) => void;
+    editMedicalRecord: (id: string, updates: Partial<MedicalRecord>) => void;
+
+    addEmployee: (emp: Omit<Employee, 'id'>) => void;
+    editEmployee: (id: string, updates: Partial<Employee>) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -76,7 +90,12 @@ const INITIAL_INVENTORY: MedicineBatch[] = [
 const INITIAL_RECORDS: MedicalRecord[] = [
     { id: uuidv4(), employeeName: 'Juan Dela Cruz', date: subDays(new Date(), 30).toISOString(), temperature: 36.5, systolic: 120, diastolic: 80, pulseRate: '72', remarks: 'Routine checkup. Overall healthy.', medicineGiven: 'None' },
     { id: uuidv4(), employeeName: 'Juan Dela Cruz', date: subDays(new Date(), 15).toISOString(), temperature: 36.8, systolic: 118, diastolic: 79, pulseRate: '75', remarks: 'Complained of mild fatigue.', medicineGiven: 'Vitamins' },
-    { id: uuidv4(), employeeName: 'Juan Dela Cruz', date: subDays(new Date(), 2).toISOString(), temperature: 37.1, systolic: 122, diastolic: 82, pulseRate: '80', remarks: 'Slight fever reported.', medicineGiven: 'Paracetamol 500mg' },
+    { id: uuidv4(), employeeName: 'Juan Dela Cruz', date: subDays(new Date(), 4).toISOString(), temperature: 37.1, systolic: 145, diastolic: 95, pulseRate: '80', remarks: 'High BP recorded.', medicineGiven: 'Losartan 50mg' },
+    { id: uuidv4(), employeeName: 'Juan Dela Cruz', date: subDays(new Date(), 3).toISOString(), temperature: 36.9, systolic: 142, diastolic: 92, pulseRate: '78', remarks: 'Follow up, BP still high.', medicineGiven: 'None' },
+    { id: uuidv4(), employeeName: 'Juan Dela Cruz', date: subDays(new Date(), 2).toISOString(), temperature: 37.0, systolic: 150, diastolic: 100, pulseRate: '85', remarks: 'BP elevated.', medicineGiven: 'Amlodipine 10mg' },
+    { id: uuidv4(), employeeName: 'Maria Santos', date: subDays(new Date(), 1).toISOString(), temperature: 38.5, systolic: 110, diastolic: 70, pulseRate: '95', remarks: 'Feverish.', medicineGiven: 'Paracetamol 500mg' },
+    { id: uuidv4(), employeeName: 'Maria Santos', date: subDays(new Date(), 2).toISOString(), temperature: 38.2, systolic: 112, diastolic: 72, pulseRate: '92', remarks: 'Feverish.', medicineGiven: 'Paracetamol 500mg' },
+    { id: uuidv4(), employeeName: 'Maria Santos', date: subDays(new Date(), 3).toISOString(), temperature: 37.9, systolic: 115, diastolic: 75, pulseRate: '90', remarks: 'Feverish.', medicineGiven: 'None' },
 ];
 
 const INITIAL_EMPLOYEES: Employee[] = [
@@ -118,7 +137,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const [requests, setRequests] = useState<EmployeeRequest[]>(() => {
         const saved = localStorage.getItem('bwd_requests');
-        return saved ? JSON.parse(saved) : [];
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            // Migrate legacy requests (from medicineRequested -> items)
+            return parsed.map((req: any) => {
+                if (!req.items && req.medicineRequested) {
+                    return { ...req, items: [{ medicineName: req.medicineRequested, quantity: 1 }] };
+                }
+                return req;
+            });
+        }
+        return [];
     });
 
     const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>(() => {
@@ -129,6 +158,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [employees, setEmployees] = useState<Employee[]>(() => {
         const saved = localStorage.getItem('bwd_employees');
         return saved ? JSON.parse(saved) : INITIAL_EMPLOYEES;
+    });
+
+    const [disposedMedicines, setDisposedMedicines] = useState<DisposedMedicine[]>(() => {
+        const saved = localStorage.getItem('bwd_disposed_medicines');
+        return saved ? JSON.parse(saved) : [];
     });
 
     const [modalState, setModalState] = useState<ModalState>({ type: 'NONE' });
@@ -157,69 +191,76 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         localStorage.setItem('bwd_employees', JSON.stringify(employees));
     }, [employees]);
 
+    useEffect(() => {
+        localStorage.setItem('bwd_disposed_medicines', JSON.stringify(disposedMedicines));
+    }, [disposedMedicines]);
+
     // Actions
     const addMedicine = (med: Omit<MedicineBatch, 'id' | 'addedDate'>) => {
-        const newMed: MedicineBatch = {
-            ...med,
-            id: uuidv4(),
-            addedDate: new Date().toISOString(),
-        };
+        const newMed: MedicineBatch = { ...med, id: uuidv4(), addedDate: new Date().toISOString() };
         setInventory(prev => [...prev, newMed]);
     };
 
-    const addRequest = (req: Omit<EmployeeRequest, 'id' | 'requestDate' | 'status'>) => {
-        const newReq: EmployeeRequest = {
-            ...req,
+    const editMedicine = (id: string, updates: Partial<MedicineBatch>) => {
+        setInventory(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
+    };
+
+    const disposeMedicine = (id: string, qty: number) => {
+        const batch = inventory.find(m => m.id === id);
+        if (!batch) return;
+
+        const disposed: DisposedMedicine = {
             id: uuidv4(),
-            requestDate: new Date().toISOString(),
-            status: 'Pending',
+            scientificName: batch.scientificName,
+            brand: batch.brand,
+            milligrams: batch.milligrams,
+            quantity: qty,
+            addedDate: batch.addedDate,
+            expiryDate: batch.expiryDate,
+            disposedDate: new Date().toISOString()
         };
+        setDisposedMedicines(d => [...d, disposed]);
+
+        setInventory(prev => {
+            return prev.map(m => m.id === id ? { ...m, quantity: Math.max(0, m.quantity - qty) } : m).filter(m => m.quantity > 0);
+        });
+    };
+
+    const addRequest = (req: Omit<EmployeeRequest, 'id' | 'requestDate' | 'status'>) => {
+        const newReq: EmployeeRequest = { ...req, id: uuidv4(), requestDate: new Date().toISOString(), status: 'Pending' };
         setRequests(prev => [...prev, newReq]);
+    };
+
+    const editRequest = (id: string, updates: Partial<EmployeeRequest>) => {
+        setRequests(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+    };
+
+    // Helper logic to deduct items from inventory FIFO
+    const processInventoryDeduction = (items: RequestItem[]) => {
+        setInventory(prevInv => {
+            let nextInv = [...prevInv];
+            for (const item of items) {
+                let remainingToDeduct = item.quantity;
+                // Get batches for this medicine, oldest first
+                const batches = nextInv
+                    .filter(b => b.scientificName.toLowerCase() === item.medicineName.toLowerCase() && b.quantity > 0)
+                    .sort((a, b) => new Date(a.addedDate).getTime() - new Date(b.addedDate).getTime());
+
+                for (const batch of batches) {
+                    if (remainingToDeduct <= 0) break;
+                    const deduction = Math.min(batch.quantity, remainingToDeduct);
+                    batch.quantity -= deduction;
+                    remainingToDeduct -= deduction;
+                }
+            }
+            return nextInv;
+        });
     };
 
     const addManualApprovedRequest = (req: Omit<EmployeeRequest, 'id' | 'requestDate' | 'status'>) => {
-        let assignedBatchId: string | undefined = undefined;
-
-        // Find the oldest available batch for the requested medicine to deduct stock
-        const matchingBatches = inventory
-            .filter(b => b.scientificName.toLowerCase() === req.medicineRequested.toLowerCase() && b.quantity > 0)
-            .sort((a, b) => new Date(a.addedDate).getTime() - new Date(b.addedDate).getTime());
-
-        if (matchingBatches.length > 0) {
-            const oldestBatch = matchingBatches[0];
-            assignedBatchId = oldestBatch.id;
-
-            // Update inventory
-            setInventory(prevInv => prevInv.map(b =>
-                b.id === oldestBatch.id ? { ...b, quantity: b.quantity - 1 } : b
-            ));
-        }
-
-        const newReq: EmployeeRequest = {
-            ...req,
-            id: uuidv4(),
-            requestDate: new Date().toISOString(),
-            status: 'Approved',
-            assignedBatchId
-        };
+        processInventoryDeduction(req.items);
+        const newReq: EmployeeRequest = { ...req, id: uuidv4(), requestDate: new Date().toISOString(), status: 'Approved' };
         setRequests(prev => [...prev, newReq]);
-    };
-
-    const addMedicalRecord = (record: Omit<MedicalRecord, 'id' | 'date'>) => {
-        const newRecord: MedicalRecord = {
-            ...record,
-            id: uuidv4(),
-            date: new Date().toISOString(),
-        };
-        setMedicalRecords(prev => [...prev, newRecord]);
-    };
-
-    const addEmployee = (emp: Omit<Employee, 'id'>) => {
-        const newEmp: Employee = {
-            ...emp,
-            id: uuidv4()
-        };
-        setEmployees(prev => [...prev, newEmp]);
     };
 
     const approveRequest = (requestId: string) => {
@@ -229,36 +270,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (reqIndex === -1 || copy[reqIndex].status !== 'Pending') return copy;
 
             const req = copy[reqIndex];
-            // Find the oldest available batch for the requested medicine
-            const matchingBatches = inventory
-                .filter(b => b.scientificName.toLowerCase() === req.medicineRequested.toLowerCase() && b.quantity > 0)
-                .sort((a, b) => new Date(a.addedDate).getTime() - new Date(b.addedDate).getTime());
+            processInventoryDeduction(req.items);
 
-            if (matchingBatches.length > 0) {
-                const oldestBatch = matchingBatches[0];
-
-                // Update inventory
-                setInventory(prevInv => prevInv.map(b =>
-                    b.id === oldestBatch.id ? { ...b, quantity: b.quantity - 1 } : b
-                ));
-
-                copy[reqIndex] = { ...req, status: 'Approved', assignedBatchId: oldestBatch.id };
-            } else {
-                // Edge case: No stock left. Reject it automatically.
-                copy[reqIndex] = { ...req, status: 'Rejected' };
-            }
+            copy[reqIndex] = { ...req, status: 'Approved' };
             return copy;
         });
     };
 
     const rejectRequest = (requestId: string) => {
-        setRequests(prev => prev.map(r =>
-            r.id === requestId ? { ...r, status: 'Rejected' } : r
-        ));
+        setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: 'Rejected' } : r));
+    };
+
+    const addMedicalRecord = (record: Omit<MedicalRecord, 'id' | 'date'>) => {
+        const newRecord: MedicalRecord = { ...record, id: uuidv4(), date: new Date().toISOString() };
+        setMedicalRecords(prev => [...prev, newRecord]);
+
+        if (record.medicineGiven && record.medicineGiven !== 'None') {
+            processInventoryDeduction([{ medicineName: record.medicineGiven, quantity: 1 }]);
+        }
+    };
+
+    const editMedicalRecord = (id: string, updates: Partial<MedicalRecord>) => {
+        setMedicalRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+    };
+
+    const addEmployee = (emp: Omit<Employee, 'id'>) => {
+        const newEmp: Employee = { ...emp, id: uuidv4() };
+        setEmployees(prev => [...prev, newEmp]);
+    };
+
+    const editEmployee = (id: string, updates: Partial<Employee>) => {
+        setEmployees(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
     };
 
     return (
-        <AppContext.Provider value={{ inventory, requests, medicalRecords, employees, addMedicine, addRequest, addManualApprovedRequest, addMedicalRecord, addEmployee, approveRequest, rejectRequest, modalState, openModal, closeModal }}>
+        <AppContext.Provider value={{ inventory, requests, medicalRecords, employees, disposedMedicines, addMedicine, editMedicine, disposeMedicine, addRequest, addManualApprovedRequest, editRequest, addMedicalRecord, editMedicalRecord, addEmployee, editEmployee, approveRequest, rejectRequest, modalState, openModal, closeModal }}>
             {children}
         </AppContext.Provider>
     );

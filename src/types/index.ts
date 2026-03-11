@@ -11,14 +11,29 @@ export interface MedicineBatch {
 
 export type RequestStatus = 'Pending' | 'Approved' | 'Rejected';
 
+export interface RequestItem {
+    medicineName: string;
+    quantity: number;
+}
+
 export interface EmployeeRequest {
     id: string;
     employeeName: string;
-    medicineRequested: string; // e.g., "Paracetamol" or "Amoxicillin"
+    items: RequestItem[];
     reason: string;
     requestDate: string;
     status: RequestStatus;
-    assignedBatchId?: string; // the batch from which it was subtracted
+}
+
+export interface DisposedMedicine {
+    id: string;
+    scientificName: string;
+    brand: string;
+    milligrams: number;
+    quantity: number;
+    addedDate: string;
+    expiryDate: string;
+    disposedDate: string;
 }
 
 export interface MedicalRecord {
