@@ -1,15 +1,14 @@
 import React from 'react';
-import { Button } from '../ui/primitives';
-import { HeartPulse, Repeat } from 'lucide-react';
+import { HeartPulse } from 'lucide-react';
 import { GlobalModal } from '../ui/GlobalModal';
 
 interface AppLayoutProps {
     children: React.ReactNode;
-    userRole: 'Admin' | 'Employee';
-    onRoleSwitch: () => void;
+    userRole?: 'Admin' | 'Employee';
+    onRoleSwitch?: () => void;
 }
 
-export const AppLayout = ({ children, userRole, onRoleSwitch }: AppLayoutProps) => {
+export const AppLayout = ({ children }: AppLayoutProps) => {
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
             <GlobalModal />
