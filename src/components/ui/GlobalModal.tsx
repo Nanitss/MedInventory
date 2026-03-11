@@ -488,8 +488,8 @@ const ViewRemarksBody = ({ onClose, record }: any) => {
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl min-h-[400px] overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
             <div className="bg-brand-blue-50 px-6 py-4 border-b border-brand-blue-100 flex items-center justify-between"><h3 className="font-bold text-brand-blue-900 text-lg">Record Details</h3><button type="button" onClick={onClose} className="text-brand-blue-500 hover:bg-brand-blue-100 rounded-lg p-1 transition-colors"><X size={20} /></button></div>
             <div className="p-6 space-y-6 flex-1 flex flex-col">
-                <div className="flex-1"><h4 className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2 border-b pb-2"><FileText size={16} className="text-brand-blue" /> Remarks / Symptoms</h4><p className="text-sm p-3 bg-slate-50 border rounded-lg h-full">{record.remarks || "No remarks provided."}</p></div>
-                <div className="flex-1"><h4 className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2 border-b pb-2"><Pill size={16} className="text-brand-blue" /> Medicine Given</h4><p className="text-sm p-3 bg-slate-50 border rounded-lg">{record.medicineGiven || "No medicine given."}</p></div>
+                <div><h4 className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2 border-b pb-2"><FileText size={16} className="text-brand-blue" /> Remarks / Symptoms</h4><p className="text-sm p-3 bg-slate-50 border rounded-lg">{record.remarks || "No remarks provided."}</p></div>
+                <div><h4 className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2 border-b pb-2"><Pill size={16} className="text-brand-blue" /> Medicine Given</h4><p className="text-sm p-3 bg-slate-50 border rounded-lg">{record.medicineGiven || "No medicine given."}</p></div>
                 <div className="flex justify-end pt-4 shrink-0"><Button onClick={onClose}>Close</Button></div>
             </div>
         </div>
