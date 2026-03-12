@@ -39,8 +39,8 @@ export const MedicalRecords = () => {
                                 <div>
                                     <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Temperature</p>
                                     <p className="text-lg font-extrabold text-slate-700 tracking-tight">
-                                        {record.temperature}°C
-                                        {record.temperature > 37.5 && <span className="ml-2 text-[10px] text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded-full border border-red-100">Elevated</span>}
+                                        {record.temperature != null ? `${record.temperature}°C` : '--'}
+                                        {record.temperature != null && record.temperature > 37.5 && <span className="ml-2 text-[10px] text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded-full border border-red-100">Elevated</span>}
                                     </p>
                                 </div>
                             </div>
@@ -52,7 +52,9 @@ export const MedicalRecords = () => {
                                 <div>
                                     <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Blood Pressure</p>
                                     <p className="text-lg font-extrabold text-slate-700 tracking-tight">
-                                        {record.systolic} / {record.diastolic} <span className="text-[11px] text-slate-400 font-bold tracking-widest ml-1">mmHg</span>
+                                        {record.systolic != null && record.diastolic != null ? (
+                                            <>{record.systolic} / {record.diastolic} <span className="text-[11px] text-slate-400 font-bold tracking-widest ml-1">mmHg</span></>
+                                        ) : '--'}
                                     </p>
                                 </div>
                             </div>
