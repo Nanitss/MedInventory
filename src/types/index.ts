@@ -40,10 +40,10 @@ export interface MedicalRecord {
     id: string;
     employeeName: string;
     date: string;
-    temperature: number; // Celsius
-    systolic: number;
-    diastolic: number;
-    pulseRate: string;
+    temperature?: number; // Celsius (optional)
+    systolic?: number; // (optional)
+    diastolic?: number; // (optional)
+    pulseRate?: string; // (optional)
     remarks: string;
     medicineGiven: string;
 }

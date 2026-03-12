@@ -41,9 +41,9 @@ export const EmployeeRecordsTab = () => {
                 for (let j = i; j < sorted.length; j++) {
                     const checkedDate = new Date(sorted[j].date);
                     if (differenceInDays(checkedDate, currentRecDate) > 7) break;
-                    if (sorted[j].systolic >= 140 || sorted[j].diastolic >= 90) bpCount++;
-                    if (sorted[j].temperature > 37.5) tempCount++;
-                    const pulse = parseInt(sorted[j].pulseRate, 10);
+                    if (sorted[j].systolic != null && sorted[j].diastolic != null && (sorted[j].systolic >= 140 || sorted[j].diastolic >= 90)) bpCount++;
+                    if (sorted[j].temperature != null && sorted[j].temperature > 37.5) tempCount++;
+                    const pulse = sorted[j].pulseRate ? parseInt(sorted[j].pulseRate, 10) : NaN;
                     if (!isNaN(pulse) && pulse > 100) pulseCount++;
                 }
                 if (bpCount >= 3) hasHighBp = true;
@@ -66,24 +66,27 @@ export const EmployeeRecordsTab = () => {
             const matchName = !filters.employeeName || record.employeeName === filters.employeeName;
 
             let matchTemp = true;
-            if (filters.tempRange === 'Normal (≤ 37.5°C)') matchTemp = record.temperature <= 37.5;
-            else if (filters.tempRange === 'Fever (> 37.5°C)') matchTemp = record.temperature > 37.5;
+            if (filters.tempRange === 'Normal (≤ 37.5°C)') matchTemp = record.temperature != null && record.temperature <= 37.5;
+            else if (filters.tempRange === 'Fever (> 37.5°C)') matchTemp = record.temperature != null && record.temperature > 37.5;
 
             let matchBp = true;
             if (filters.bpRange === 'Low / Hypotension') {
-                matchBp = record.systolic < 90 || record.diastolic < 60;
+                matchBp = record.systolic != null && record.diastolic != null && (record.systolic < 90 || record.diastolic < 60);
             } else if (filters.bpRange === 'Normal') {
-                matchBp = (record.systolic >= 90 && record.systolic <= 120) && (record.diastolic >= 60 && record.diastolic <= 80);
+                matchBp = record.systolic != null && record.diastolic != null && ((record.systolic >= 90 && record.systolic <= 120) && (record.diastolic >= 60 && record.diastolic <= 80));
             } else if (filters.bpRange === 'Elevated / Hypertension') {
-                matchBp = record.systolic > 120 || record.diastolic > 80;
+                matchBp = record.systolic != null && record.diastolic != null && (record.systolic > 120 || record.diastolic > 80);
             }
 
             let matchPulse = true;
-            const pulse = parseInt(record.pulseRate, 10);
+            const pulse = record.pulseRate ? parseInt(record.pulseRate, 10) : NaN;
             if (!isNaN(pulse)) {
                 if (filters.pulseRange === 'Low (< 60 bpm)') matchPulse = pulse < 60;
                 else if (filters.pulseRange === 'Normal (60-100 bpm)') matchPulse = pulse >= 60 && pulse <= 100;
                 else if (filters.pulseRange === 'High (> 100 bpm)') matchPulse = pulse > 100;
+            } else if (filters.pulseRange) {
+                // If filtering by pulse but value is missing, it doesn't match
+                matchPulse = false;
             }
 
             const matchMed = !filters.medicineGiven || record.medicineGiven === filters.medicineGiven;
@@ -100,15 +103,30 @@ export const EmployeeRecordsTab = () => {
 
     const handleExportPdf = () => {
         const headers = ['Date', 'Employee Name', 'Temp (°C)', 'BP (mmHg)', 'Pulse Rate', 'Remarks', 'Medicine Given'];
-        const data = sortedRecords.map(rec => [
-            format(new Date(rec.date), 'MMM dd, yyyy h:mm a'),
-            rec.employeeName,
-            rec.temperature.toString(),
-            `${rec.systolic}/${rec.diastolic}`,
-            rec.pulseRate || '--',
-            rec.remarks || 'None',
-            rec.medicineGiven || 'None'
-        ]);
+        const data = sortedRecords.map(rec => {
+            const tempDisplay = rec.temperature != null ? `${rec.temperature}` : '--';
+            const bpDisplay = rec.systolic != null && rec.diastolic != null ? `${rec.systolic}/${rec.diastolic}` : '--';
+            
+            // Helper to parsing medicine JSON just for export
+            const getMedDisplay = (val: string) => {
+                if (!val || val === 'None') return 'None';
+                try {
+                    const parsed = JSON.parse(val);
+                    if (Array.isArray(parsed)) return parsed.map((i: any) => `${i.quantity}x ${i.medicineName}`).join(', ');
+                } catch { /* legacy string */ }
+                return val;
+            };
+
+            return [
+                format(new Date(rec.date), 'MMM dd, yyyy h:mm a'),
+                rec.employeeName,
+                tempDisplay,
+                bpDisplay,
+                rec.pulseRate || '--',
+                rec.remarks || 'None',
+                getMedDisplay(rec.medicineGiven)
+            ];
+        });
 
         exportToPdf({
             title: 'Employee Medical Records Report',
@@ -179,8 +197,10 @@ export const EmployeeRecordsTab = () => {
                                     }
 
                                     let bpColor = "text-slate-700";
-                                    if (record.systolic >= 140 || record.diastolic >= 90) bpColor = "text-red-600";
-                                    else if (record.systolic <= 90 || record.diastolic <= 60) bpColor = "text-blue-600";
+                                    if (record.systolic != null && record.diastolic != null) {
+                                        if (record.systolic >= 140 || record.diastolic >= 90) bpColor = "text-red-600";
+                                        else if (record.systolic <= 90 || record.diastolic <= 60) bpColor = "text-blue-600";
+                                    }
 
                                     return (
                                         <tr key={record.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
@@ -195,9 +215,9 @@ export const EmployeeRecordsTab = () => {
                                             </td>
                                             <td className="py-3 px-6">
                                                 <div className="flex items-center gap-2">
-                                                    <Thermometer size={16} className={record.temperature > 37.5 ? 'text-red-500' : 'text-slate-400'} />
-                                                    <span className={`font-medium ${record.temperature > 37.5 ? 'text-red-600' : 'text-slate-700'}`}>
-                                                        {record.temperature}°C
+                                                    <Thermometer size={16} className={record.temperature != null && record.temperature > 37.5 ? 'text-red-500' : 'text-slate-400'} />
+                                                    <span className={`font-medium ${record.temperature != null && record.temperature > 37.5 ? 'text-red-600' : 'text-slate-700'}`}>
+                                                        {record.temperature != null ? `${record.temperature}°C` : '--'}
                                                     </span>
                                                 </div>
                                             </td>
@@ -205,7 +225,9 @@ export const EmployeeRecordsTab = () => {
                                                 <div className="flex items-center gap-2">
                                                     <Droplets size={16} className={bpColor} />
                                                     <span className={`font-medium ${bpColor}`}>
-                                                        {record.systolic} / {record.diastolic} <span className="text-xs opacity-70">mmHg</span>
+                                                        {record.systolic != null && record.diastolic != null ? (
+                                                            <>{record.systolic} / {record.diastolic} <span className="text-xs opacity-70">mmHg</span></>
+                                                        ) : '--'}
                                                     </span>
                                                 </div>
                                             </td>
@@ -213,7 +235,9 @@ export const EmployeeRecordsTab = () => {
                                                 <div className="flex items-center gap-2">
                                                     <Activity size={16} className="text-slate-400" />
                                                     <span className="font-medium text-slate-700">
-                                                        {record.pulseRate || '--'} <span className="text-xs text-slate-400">bpm</span>
+                                                        {record.pulseRate ? (
+                                                            <>{record.pulseRate} <span className="text-xs text-slate-400">bpm</span></>
+                                                        ) : '--'}
                                                     </span>
                                                 </div>
                                             </td>

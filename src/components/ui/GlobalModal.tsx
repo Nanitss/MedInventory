@@ -169,21 +169,58 @@ const DisposeMedicineBody = ({ onClose, disposeMedicine, data }: any) => {
     );
 };
 
+/* --- Helpers for multi-medicine display --- */
+const parseMedicineGiven = (val: string): { medicineName: string; quantity: number }[] => {
+    if (!val || val === 'None') return [];
+    try {
+        const parsed = JSON.parse(val);
+        if (Array.isArray(parsed)) return parsed;
+    } catch { /* legacy single string */ }
+    return [{ medicineName: val, quantity: 1 }];
+};
+
+const formatMedicineGiven = (items: { medicineName: string; quantity: number }[]): string => {
+    const valid = items.filter(i => i.medicineName && i.medicineName !== 'None');
+    if (valid.length === 0) return 'None';
+    return JSON.stringify(valid);
+};
+
+const displayMedicineGiven = (val: string): string => {
+    const items = parseMedicineGiven(val);
+    if (items.length === 0) return 'None';
+    return items.map(i => `${i.quantity}x ${i.medicineName}`).join(', ');
+};
+
 /* --- ADD/EDIT MEDICAL RECORD --- */
 const AddMedicalRecordBody = ({ onClose, addMedicalRecord, inventory, employees }: any) => {
-    const [formData, setFormData] = useState({ employeeName: '', temperature: '', systolic: '', diastolic: '', pulseRate: '', remarks: '', medicineGiven: '' });
+    const [formData, setFormData] = useState({ employeeName: '', temperature: '', systolic: '', diastolic: '', pulseRate: '', remarks: '' });
+    const [medicineItems, setMedicineItems] = useState<{ medicineName: string; quantity: number }[]>([]);
     const uniqueMedicines = Array.from(new Set(inventory.filter((m: any) => m.quantity > 0).map((b: any) => b.scientificName))).sort();
 
-    // Fallback if no employees available
+    const addMedItem = () => setMedicineItems([...medicineItems, { medicineName: '', quantity: 1 }]);
+    const removeMedItem = (index: number) => setMedicineItems(medicineItems.filter((_, i) => i !== index));
+    const updateMedItem = (index: number, field: string, value: any) => {
+        const newItems = [...medicineItems];
+        newItems[index] = { ...newItems[index], [field]: value };
+        setMedicineItems(newItems);
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        addMedicalRecord({ ...formData, temperature: Number(formData.temperature), systolic: Number(formData.systolic), diastolic: Number(formData.diastolic) });
+        addMedicalRecord({
+            ...formData,
+            temperature: formData.temperature ? Number(formData.temperature) : undefined,
+            systolic: formData.systolic ? Number(formData.systolic) : undefined,
+            diastolic: formData.diastolic ? Number(formData.diastolic) : undefined,
+            pulseRate: formData.pulseRate || undefined,
+            medicineGiven: formatMedicineGiven(medicineItems),
+        });
         onClose();
     };
     return (
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="bg-brand-blue-50 px-6 py-4 border-b border-brand-blue-100 flex items-center justify-between"><h3 className="font-bold text-brand-blue-900 text-lg">Add Medical Record</h3><button type="button" onClick={onClose} className="text-brand-blue-500 hover:text-brand-blue-800 transition-colors"><X size={20} /></button></div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
                 <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1">Employee Name</label>
                     <select required value={formData.employeeName} onChange={e => setFormData({ ...formData, employeeName: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm bg-white">
@@ -192,17 +229,43 @@ const AddMedicalRecordBody = ({ onClose, addMedicalRecord, inventory, employees 
                     </select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Temperature (°C)</label><input required type="number" step="0.1" value={formData.temperature} onChange={e => setFormData({ ...formData, temperature: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" /></div>
-                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Pulse Rate (bpm)</label><input required type="number" value={formData.pulseRate} onChange={e => setFormData({ ...formData, pulseRate: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" /></div>
+                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Temperature (°C) <span className="text-slate-400 font-normal">optional</span></label><input type="number" step="0.1" value={formData.temperature} onChange={e => setFormData({ ...formData, temperature: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" placeholder="e.g. 36.5" /></div>
+                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Pulse Rate (bpm) <span className="text-slate-400 font-normal">optional</span></label><input type="number" value={formData.pulseRate} onChange={e => setFormData({ ...formData, pulseRate: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" placeholder="e.g. 72" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Systolic (mmHg)</label><input required type="number" value={formData.systolic} onChange={e => setFormData({ ...formData, systolic: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" /></div>
-                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Diastolic (mmHg)</label><input required type="number" value={formData.diastolic} onChange={e => setFormData({ ...formData, diastolic: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" /></div>
+                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Systolic (mmHg) <span className="text-slate-400 font-normal">optional</span></label><input type="number" value={formData.systolic} onChange={e => setFormData({ ...formData, systolic: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" placeholder="e.g. 120" /></div>
+                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Diastolic (mmHg) <span className="text-slate-400 font-normal">optional</span></label><input type="number" value={formData.diastolic} onChange={e => setFormData({ ...formData, diastolic: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" placeholder="e.g. 80" /></div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Remarks / Symptoms</label><textarea required value={formData.remarks} onChange={e => setFormData({ ...formData, remarks: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm h-full resize-none" rows={2} /></div>
-                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Medicine Given</label><select required value={formData.medicineGiven} onChange={e => setFormData({ ...formData, medicineGiven: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm bg-white"><option value="">-- Select Medicine --</option><option value="None">None</option>{uniqueMedicines.map((med: any) => <option key={med} value={med}>{med}</option>)}</select></div>
+                <div><label className="block text-sm font-semibold text-slate-700 mb-1">Remarks / Symptoms</label><textarea value={formData.remarks} onChange={e => setFormData({ ...formData, remarks: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm resize-none" rows={2} placeholder="Describe symptoms..." /></div>
+
+                {/* Multi-medicine selector */}
+                <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Medicine Given {medicineItems.length > 0 && `(${medicineItems.length})`}</label>
+                    {medicineItems.length === 0 && <p className="text-xs text-slate-400 mb-2">No medicine added yet. Click below to add.</p>}
+                    <div className="space-y-2">
+                        {medicineItems.map((item, index) => {
+                            let stockRemaining = 0;
+                            if (item.medicineName) {
+                                stockRemaining = inventory.filter((b: any) => b.scientificName.toLowerCase() === item.medicineName.toLowerCase()).reduce((acc: number, curr: any) => acc + curr.quantity, 0);
+                            }
+                            return (
+                                <div key={index} className="flex flex-col gap-1 p-3 border rounded-lg bg-slate-50">
+                                    <div className="flex items-center gap-2">
+                                        <select required value={item.medicineName} onChange={e => updateMedItem(index, 'medicineName', e.target.value)} className="flex-1 border rounded-md px-2 py-1.5 text-sm bg-white">
+                                            <option value="">Select Medicine...</option>
+                                            {uniqueMedicines.map((med: any) => <option key={med} value={med}>{med}</option>)}
+                                        </select>
+                                        <input required type="number" min="1" value={item.quantity} onChange={e => updateMedItem(index, 'quantity', Number(e.target.value))} className="w-20 border rounded-md px-2 py-1.5 text-sm bg-white" placeholder="Qty" />
+                                        <button type="button" onClick={() => removeMedItem(index)} className="p-1.5 text-red-500 hover:bg-red-100 rounded-md"><Trash2 size={16} /></button>
+                                    </div>
+                                    {item.medicineName && <p className={`text-[10px] font-medium ${stockRemaining >= item.quantity ? 'text-emerald-600' : 'text-red-500'}`}>{stockRemaining >= item.quantity ? `In Stock: ${stockRemaining} available` : 'Insufficient Stock.'}</p>}
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={addMedItem} className="mt-2 w-full gap-1 text-brand-blue border-brand-blue hover:bg-brand-blue-50"><Plus size={14} /> Add Medicine</Button>
                 </div>
+
                 <div className="pt-4 flex justify-end gap-3"><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button type="submit" variant="primary">Add Record</Button></div>
             </form>
         </div>
@@ -210,37 +273,73 @@ const AddMedicalRecordBody = ({ onClose, addMedicalRecord, inventory, employees 
 };
 
 const EditMedicalRecordBody = ({ onClose, editMedicalRecord, data, inventory, employees }: any) => {
-    const [formData, setFormData] = useState({ employeeName: data.employeeName, temperature: data.temperature, systolic: data.systolic, diastolic: data.diastolic, pulseRate: data.pulseRate, remarks: data.remarks, medicineGiven: data.medicineGiven });
-    const uniqueMedicines = Array.from(new Set(inventory.filter((m: any) => m.quantity > 0).map((b: any) => b.scientificName))).concat(data.medicineGiven && data.medicineGiven !== 'None' ? [data.medicineGiven] : []).filter((v, i, a) => a.indexOf(v) === i).sort();
+    const [formData, setFormData] = useState({ employeeName: data.employeeName, temperature: data.temperature ?? '', systolic: data.systolic ?? '', diastolic: data.diastolic ?? '', pulseRate: data.pulseRate ?? '', remarks: data.remarks });
+    const [medicineItems, setMedicineItems] = useState<{ medicineName: string; quantity: number }[]>(() => parseMedicineGiven(data.medicineGiven));
+    const uniqueMedicines = Array.from(new Set(
+        inventory.filter((m: any) => m.quantity > 0).map((b: any) => b.scientificName)
+            .concat(medicineItems.map((i: any) => i.medicineName).filter(Boolean))
+    )).sort();
+
+    const addMedItem = () => setMedicineItems([...medicineItems, { medicineName: '', quantity: 1 }]);
+    const removeMedItem = (index: number) => setMedicineItems(medicineItems.filter((_, i) => i !== index));
+    const updateMedItem = (index: number, field: string, value: any) => {
+        const newItems = [...medicineItems];
+        newItems[index] = { ...newItems[index], [field]: value };
+        setMedicineItems(newItems);
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        editMedicalRecord(data.id, { ...formData, temperature: Number(formData.temperature), systolic: Number(formData.systolic), diastolic: Number(formData.diastolic) });
+        editMedicalRecord(data.id, {
+            ...formData,
+            temperature: formData.temperature !== '' ? Number(formData.temperature) : undefined,
+            systolic: formData.systolic !== '' ? Number(formData.systolic) : undefined,
+            diastolic: formData.diastolic !== '' ? Number(formData.diastolic) : undefined,
+            pulseRate: formData.pulseRate || undefined,
+            medicineGiven: formatMedicineGiven(medicineItems),
+        });
         onClose();
     };
     return (
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="bg-brand-blue-50 px-6 py-4 border-b border-brand-blue-100 flex items-center justify-between"><h3 className="font-bold text-brand-blue-900 text-lg">Edit Medical Record</h3><button type="button" onClick={onClose} className="text-brand-blue-500 hover:text-brand-blue-800 transition-colors"><X size={20} /></button></div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
                 <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1">Employee Name</label>
                     <select required value={formData.employeeName} onChange={e => setFormData({ ...formData, employeeName: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm bg-white">
-                        <option value={data.employeeName}>{data.employeeName}</option>
+                        <option value="">-- Select Employee --</option>
                         {employees.map((e: any) => <option key={e.id} value={e.name}>{e.name}</option>)}
                     </select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Temperature (°C)</label><input required type="number" step="0.1" value={formData.temperature} onChange={e => setFormData({ ...formData, temperature: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" /></div>
-                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Pulse Rate (bpm)</label><input required type="number" value={formData.pulseRate} onChange={e => setFormData({ ...formData, pulseRate: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" /></div>
+                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Temperature (°C) <span className="text-slate-400 font-normal">optional</span></label><input type="number" step="0.1" value={formData.temperature} onChange={e => setFormData({ ...formData, temperature: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" /></div>
+                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Pulse Rate (bpm) <span className="text-slate-400 font-normal">optional</span></label><input type="number" value={formData.pulseRate} onChange={e => setFormData({ ...formData, pulseRate: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Systolic (mmHg)</label><input required type="number" value={formData.systolic} onChange={e => setFormData({ ...formData, systolic: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" /></div>
-                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Diastolic (mmHg)</label><input required type="number" value={formData.diastolic} onChange={e => setFormData({ ...formData, diastolic: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" /></div>
+                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Systolic (mmHg) <span className="text-slate-400 font-normal">optional</span></label><input type="number" value={formData.systolic} onChange={e => setFormData({ ...formData, systolic: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" /></div>
+                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Diastolic (mmHg) <span className="text-slate-400 font-normal">optional</span></label><input type="number" value={formData.diastolic} onChange={e => setFormData({ ...formData, diastolic: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" /></div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Remarks / Symptoms</label><textarea required value={formData.remarks} onChange={e => setFormData({ ...formData, remarks: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm h-full resize-none" rows={2} /></div>
-                    <div><label className="block text-sm font-semibold text-slate-700 mb-1">Medicine Given</label><select required value={formData.medicineGiven} onChange={e => setFormData({ ...formData, medicineGiven: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm bg-white"><option value="">-- Select Medicine --</option><option value="None">None</option>{uniqueMedicines.map((med: any) => <option key={med} value={med}>{med}</option>)}</select></div>
+                <div><label className="block text-sm font-semibold text-slate-700 mb-1">Remarks / Symptoms</label><textarea value={formData.remarks} onChange={e => setFormData({ ...formData, remarks: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm resize-none" rows={2} /></div>
+
+                {/* Multi-medicine selector */}
+                <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Medicine Given {medicineItems.length > 0 && `(${medicineItems.length})`}</label>
+                    {medicineItems.length === 0 && <p className="text-xs text-slate-400 mb-2">No medicine. Click below to add.</p>}
+                    <div className="space-y-2">
+                        {medicineItems.map((item, index) => (
+                            <div key={index} className="flex items-center gap-2 p-3 border rounded-lg bg-slate-50">
+                                <select required value={item.medicineName} onChange={e => updateMedItem(index, 'medicineName', e.target.value)} className="flex-1 border rounded-md px-2 py-1.5 text-sm bg-white">
+                                    <option value="">Select Medicine...</option>
+                                    {uniqueMedicines.map((med: any) => <option key={med} value={med}>{med}</option>)}
+                                </select>
+                                <input required type="number" min="1" value={item.quantity} onChange={e => updateMedItem(index, 'quantity', Number(e.target.value))} className="w-20 border rounded-md px-2 py-1.5 text-sm bg-white" placeholder="Qty" />
+                                <button type="button" onClick={() => removeMedItem(index)} className="p-1.5 text-red-500 hover:bg-red-100 rounded-md"><Trash2 size={16} /></button>
+                            </div>
+                        ))}
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={addMedItem} className="mt-2 w-full gap-1 text-brand-blue border-brand-blue hover:bg-brand-blue-50"><Plus size={14} /> Add Medicine</Button>
                 </div>
+
                 <div className="pt-4 flex justify-end gap-3"><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button type="submit" variant="primary">Save Changes</Button></div>
             </form>
         </div>
@@ -538,10 +637,10 @@ const ViewMedicalHistoryBody = ({ onClose, employee, medicalRecords }: any) => {
         const headers = ['Date', 'Temp (°C)', 'BP (mmHg)', 'Pulse Rate', 'Medicine Given', 'Remarks'];
         const data = history.map((record: any) => [
             format(new Date(record.date), 'MMM dd, yyyy h:mm a'),
-            record.temperature.toString(),
-            `${record.systolic}/${record.diastolic}`,
+            record.temperature != null ? record.temperature.toString() : '--',
+            record.systolic != null && record.diastolic != null ? `${record.systolic}/${record.diastolic}` : '--',
             record.pulseRate ? record.pulseRate.toString() : '--',
-            record.medicineGiven || 'None',
+            displayMedicineGiven(record.medicineGiven),
             record.remarks || 'None'
         ]);
         import('../../utils/exportPdf').then(({ exportToPdf }) => {
@@ -570,10 +669,10 @@ const ViewMedicalHistoryBody = ({ onClose, employee, medicalRecords }: any) => {
                         <div key={record.id} className="bg-white rounded-lg border border-slate-200 shadow-sm p-4 hover:shadow-md transition-shadow">
                             <div className="font-semibold text-slate-800 border-b pb-2 mb-2">{format(new Date(record.date), 'MMMM dd, yyyy - h:mm a')}</div>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-                                <div className="bg-orange-50 rounded-lg p-3 border border-orange-100"><div className="flex items-center gap-1.5 text-orange-600 mb-1"><Thermometer size={14} /><span className="text-xs font-semibold">Temp</span></div><div className="text-lg font-bold text-orange-900">{record.temperature}°C</div></div>
-                                <div className="bg-red-50 rounded-lg p-3 border border-red-100"><div className="flex items-center gap-1.5 text-red-600 mb-1"><Droplets size={14} /><span className="text-xs font-semibold">BP</span></div><div className="text-lg font-bold text-red-900">{record.systolic}/{record.diastolic}</div></div>
-                                <div className="bg-sky-50 rounded-lg p-3 border border-sky-100"><div className="flex items-center gap-1.5 text-sky-600 mb-1"><Activity size={14} /><span className="text-xs font-semibold">Pulse</span></div><div className="text-lg font-bold text-sky-900">{record.pulseRate} bpm</div></div>
-                                <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-100"><div className="text-xs text-emerald-600 font-semibold mb-1">Meds</div><div className="text-sm text-emerald-900">{record.medicineGiven || 'None'}</div></div>
+                                <div className="bg-orange-50 rounded-lg p-3 border border-orange-100"><div className="flex items-center gap-1.5 text-orange-600 mb-1"><Thermometer size={14} /><span className="text-xs font-semibold">Temp</span></div><div className="text-lg font-bold text-orange-900">{record.temperature != null ? `${record.temperature}°C` : '--'}</div></div>
+                                <div className="bg-red-50 rounded-lg p-3 border border-red-100"><div className="flex items-center gap-1.5 text-red-600 mb-1"><Droplets size={14} /><span className="text-xs font-semibold">BP</span></div><div className="text-lg font-bold text-red-900">{record.systolic != null && record.diastolic != null ? `${record.systolic}/${record.diastolic}` : '--'}</div></div>
+                                <div className="bg-sky-50 rounded-lg p-3 border border-sky-100"><div className="flex items-center gap-1.5 text-sky-600 mb-1"><Activity size={14} /><span className="text-xs font-semibold">Pulse</span></div><div className="text-lg font-bold text-sky-900">{record.pulseRate ? `${record.pulseRate} bpm` : '--'}</div></div>
+                                <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-100"><div className="text-xs text-emerald-600 font-semibold mb-1">Meds</div><div className="text-sm text-emerald-900">{displayMedicineGiven(record.medicineGiven)}</div></div>
                             </div>
                             {record.remarks && <div className="bg-slate-50 rounded-lg p-3 border border-slate-100"><div className="text-xs font-semibold text-slate-500 mb-1">Remarks</div><p className="text-sm">{record.remarks}</p></div>}
                         </div>
@@ -613,7 +712,7 @@ const ViewRemarksBody = ({ onClose, record }: any) => {
             <div className="bg-brand-blue-50 px-6 py-4 border-b border-brand-blue-100 flex items-center justify-between"><h3 className="font-bold text-brand-blue-900 text-lg">Record Details</h3><button type="button" onClick={onClose} className="text-brand-blue-500 hover:bg-brand-blue-100 rounded-lg p-1 transition-colors"><X size={20} /></button></div>
             <div className="p-6 space-y-6 flex-1 flex flex-col">
                 <div><h4 className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2 border-b pb-2"><FileText size={16} className="text-brand-blue" /> Remarks / Symptoms</h4><p className="text-sm p-3 bg-slate-50 border rounded-lg">{record.remarks || "No remarks provided."}</p></div>
-                <div><h4 className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2 border-b pb-2"><Pill size={16} className="text-brand-blue" /> Medicine Given</h4><p className="text-sm p-3 bg-slate-50 border rounded-lg">{record.medicineGiven || "No medicine given."}</p></div>
+                <div><h4 className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2 border-b pb-2"><Pill size={16} className="text-brand-blue" /> Medicine Given</h4><p className="text-sm p-3 bg-slate-50 border rounded-lg">{displayMedicineGiven(record.medicineGiven) || "No medicine given."}</p></div>
                 <div className="flex justify-end pt-4 shrink-0"><Button onClick={onClose}>Close</Button></div>
             </div>
         </div>
@@ -640,7 +739,7 @@ const ViewGivenMedicinesBody = ({ onClose, employee, context }: any) => {
             id: r.id,
             date: r.date,
             type: 'Consultation',
-            details: r.medicineGiven,
+            details: displayMedicineGiven(r.medicineGiven),
             notes: r.remarks || ''
         }))
     ]

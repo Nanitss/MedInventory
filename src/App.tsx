@@ -1,17 +1,26 @@
 import { useState } from 'react';
 import { AppLayout } from './components/layout/AppLayout';
 import { AdminDashboard } from './pages/AdminDashboard';
-import { EmployeeDashboard } from './pages/EmployeeDashboard.tsx';
+import { LoginPage } from './pages/LoginPage';
 
 function App() {
-  const [role, setRole] = useState<'Admin' | 'Employee'>('Admin');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+  };
+
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
 
   return (
-    <AppLayout
-      userRole={role}
-      onRoleSwitch={() => setRole(role === 'Admin' ? 'Employee' : 'Admin')}
-    >
-      {role === 'Admin' ? <AdminDashboard /> : <EmployeeDashboard />}
+    <AppLayout onLogout={handleLogout}>
+      <AdminDashboard />
     </AppLayout>
   );
 }

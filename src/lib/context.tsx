@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { MedicineBatch, EmployeeRequest, MedicalRecord, Employee, RequestItem, DisposedMedicine } from '../types';
-import { v4 as uuidv4 } from 'uuid';
-import { addDays, subDays } from 'date-fns';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import type { MedicineBatch, EmployeeRequest, MedicalRecord, Employee, DisposedMedicine } from '../types';
+import type { ToastType, ToastData } from '../components/ui/Toast';
+import * as db from './db';
 
 export type ModalType =
     | 'NONE'
@@ -31,8 +31,12 @@ interface AppContextType {
     employees: Employee[];
     disposedMedicines: DisposedMedicine[];
     modalState: ModalState;
+    loading: boolean;
+    toasts: ToastData[];
     openModal: (type: ModalType, data?: any) => void;
     closeModal: () => void;
+    showToast: (message: string, type?: ToastType) => void;
+    dismissToast: (id: string) => void;
 
     addMedicine: (med: Omit<MedicineBatch, 'id' | 'addedDate'>) => void;
     editMedicine: (id: string, updates: Partial<MedicineBatch>) => void;
@@ -54,119 +58,52 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Initial Mock Data
-const INITIAL_INVENTORY: MedicineBatch[] = [
-    {
-        id: uuidv4(),
-        scientificName: 'Paracetamol',
-        brand: 'Biogesic',
-        milligrams: 500,
-        addedDate: subDays(new Date(), 30).toISOString(),
-        expiryDate: addDays(new Date(), 400).toISOString(),
-        illness: 'Fever, Headache',
-        quantity: 100,
-    },
-    {
-        id: uuidv4(),
-        scientificName: 'Amoxicillin',
-        brand: 'Amoxil',
-        milligrams: 250,
-        addedDate: subDays(new Date(), 20).toISOString(),
-        expiryDate: addDays(new Date(), 15).toISOString(), // Expiring soon!
-        illness: 'Bacterial Infection',
-        quantity: 50,
-    },
-    {
-        id: uuidv4(),
-        scientificName: 'Loratadine',
-        brand: 'Claritin',
-        milligrams: 10,
-        addedDate: subDays(new Date(), 60).toISOString(),
-        expiryDate: subDays(new Date(), 5).toISOString(), // Already Expired!
-        illness: 'Allergies',
-        quantity: 20,
-    }
-];
-
-const INITIAL_RECORDS: MedicalRecord[] = [
-    { id: uuidv4(), employeeName: 'Juan Dela Cruz', date: subDays(new Date(), 30).toISOString(), temperature: 36.5, systolic: 120, diastolic: 80, pulseRate: '72', remarks: 'Routine checkup. Overall healthy.', medicineGiven: 'None' },
-    { id: uuidv4(), employeeName: 'Juan Dela Cruz', date: subDays(new Date(), 15).toISOString(), temperature: 36.8, systolic: 118, diastolic: 79, pulseRate: '75', remarks: 'Complained of mild fatigue.', medicineGiven: 'Vitamins' },
-    { id: uuidv4(), employeeName: 'Juan Dela Cruz', date: subDays(new Date(), 4).toISOString(), temperature: 37.1, systolic: 145, diastolic: 95, pulseRate: '80', remarks: 'High BP recorded.', medicineGiven: 'Losartan 50mg' },
-    { id: uuidv4(), employeeName: 'Juan Dela Cruz', date: subDays(new Date(), 3).toISOString(), temperature: 36.9, systolic: 142, diastolic: 92, pulseRate: '78', remarks: 'Follow up, BP still high.', medicineGiven: 'None' },
-    { id: uuidv4(), employeeName: 'Juan Dela Cruz', date: subDays(new Date(), 2).toISOString(), temperature: 37.0, systolic: 150, diastolic: 100, pulseRate: '85', remarks: 'BP elevated.', medicineGiven: 'Amlodipine 10mg' },
-    { id: uuidv4(), employeeName: 'Maria Santos', date: subDays(new Date(), 1).toISOString(), temperature: 38.5, systolic: 110, diastolic: 70, pulseRate: '95', remarks: 'Feverish.', medicineGiven: 'Paracetamol 500mg' },
-    { id: uuidv4(), employeeName: 'Maria Santos', date: subDays(new Date(), 2).toISOString(), temperature: 38.2, systolic: 112, diastolic: 72, pulseRate: '92', remarks: 'Feverish.', medicineGiven: 'Paracetamol 500mg' },
-    { id: uuidv4(), employeeName: 'Maria Santos', date: subDays(new Date(), 3).toISOString(), temperature: 37.9, systolic: 115, diastolic: 75, pulseRate: '90', remarks: 'Feverish.', medicineGiven: 'None' },
-];
-
-const INITIAL_EMPLOYEES: Employee[] = [
-    {
-        id: uuidv4(),
-        name: 'Juan Dela Cruz',
-        contactNumber: '0917-123-4567',
-        address: '123 Rizal St, Baliwag, Bulacan',
-        gender: 'Male',
-        age: 30,
-        medicalInfo: {
-            bloodType: 'O+',
-            allergies: 'None',
-            preExistingConditions: 'Hypertension',
-            emergencyContact: 'Maria Cruz (Wife) - 0917-999-8888'
-        }
-    },
-    {
-        id: uuidv4(),
-        name: 'Maria Santos',
-        contactNumber: '0918-987-6543',
-        address: '456 Bonifacio Ave, Baliwag, Bulacan',
-        gender: 'Female',
-        age: 28,
-        medicalInfo: {
-            bloodType: 'A-',
-            allergies: 'Penicillin, Dust',
-            preExistingConditions: 'Asthma',
-            emergencyContact: 'Pedro Santos (Brother) - 0918-777-6666'
-        }
-    },
-];
+let toastCounter = 0;
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [inventory, setInventory] = useState<MedicineBatch[]>(() => {
-        const saved = localStorage.getItem('bwd_inventory');
-        return saved ? JSON.parse(saved) : INITIAL_INVENTORY;
-    });
-
-    const [requests, setRequests] = useState<EmployeeRequest[]>(() => {
-        const saved = localStorage.getItem('bwd_requests');
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            // Migrate legacy requests (from medicineRequested -> items)
-            return parsed.map((req: any) => {
-                if (!req.items && req.medicineRequested) {
-                    return { ...req, items: [{ medicineName: req.medicineRequested, quantity: 1 }] };
-                }
-                return req;
-            });
-        }
-        return [];
-    });
-
-    const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>(() => {
-        const saved = localStorage.getItem('bwd_medical_records_v3');
-        return saved ? JSON.parse(saved) : INITIAL_RECORDS;
-    });
-
-    const [employees, setEmployees] = useState<Employee[]>(() => {
-        const saved = localStorage.getItem('bwd_employees');
-        return saved ? JSON.parse(saved) : INITIAL_EMPLOYEES;
-    });
-
-    const [disposedMedicines, setDisposedMedicines] = useState<DisposedMedicine[]>(() => {
-        const saved = localStorage.getItem('bwd_disposed_medicines');
-        return saved ? JSON.parse(saved) : [];
-    });
-
+    const [inventory, setInventory] = useState<MedicineBatch[]>([]);
+    const [requests, setRequests] = useState<EmployeeRequest[]>([]);
+    const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [disposedMedicines, setDisposedMedicines] = useState<DisposedMedicine[]>([]);
     const [modalState, setModalState] = useState<ModalState>({ type: 'NONE' });
+    const [loading, setLoading] = useState(true);
+    const [toasts, setToasts] = useState<ToastData[]>([]);
+
+    // ─── Toast helpers ───────────────────────────────────────────────────────
+    const showToast = useCallback((message: string, type: ToastType = 'success') => {
+        const id = `toast-${++toastCounter}`;
+        setToasts(prev => [...prev, { id, message, type }]);
+    }, []);
+
+    const dismissToast = useCallback((id: string) => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+    }, []);
+
+    // ─── Fetch all data on mount ─────────────────────────────────────────────
+    useEffect(() => {
+        const loadAll = async () => {
+            try {
+                const [inv, reqs, records, emps, disposed] = await Promise.all([
+                    db.fetchInventory(),
+                    db.fetchRequests(),
+                    db.fetchMedicalRecords(),
+                    db.fetchEmployees(),
+                    db.fetchDisposedMedicines(),
+                ]);
+                setInventory(inv);
+                setRequests(reqs);
+                setMedicalRecords(records);
+                setEmployees(emps);
+                setDisposedMedicines(disposed);
+            } catch (err) {
+                console.error('Failed to load data from Supabase:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadAll();
+    }, []);
 
     const openModal = (type: ModalType, data?: any) => {
         setModalState({ type, data });
@@ -176,203 +113,280 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setModalState({ type: 'NONE' });
     };
 
-    useEffect(() => {
-        localStorage.setItem('bwd_inventory', JSON.stringify(inventory));
-    }, [inventory]);
+    // ─── Medicine Inventory ──────────────────────────────────────────────────
 
-    useEffect(() => {
-        localStorage.setItem('bwd_requests', JSON.stringify(requests));
-    }, [requests]);
+    const addMedicine = useCallback(async (med: Omit<MedicineBatch, 'id' | 'addedDate'>) => {
+        try {
+            const newMed = await db.insertMedicine(med);
+            setInventory(prev => [newMed, ...prev]);
+            showToast('Medicine added successfully!');
+        } catch (err) {
+            console.error('Failed to add medicine:', err);
+            showToast('Failed to add medicine.', 'error');
+        }
+    }, [showToast]);
 
-    useEffect(() => {
-        localStorage.setItem('bwd_medical_records_v3', JSON.stringify(medicalRecords));
-    }, [medicalRecords]);
+    const editMedicine = useCallback(async (id: string, updates: Partial<MedicineBatch>) => {
+        try {
+            const updated = await db.updateMedicine(id, updates);
+            setInventory(prev => prev.map(m => m.id === id ? updated : m));
+            showToast('Medicine updated successfully!');
+        } catch (err) {
+            console.error('Failed to edit medicine:', err);
+            showToast('Failed to update medicine.', 'error');
+        }
+    }, [showToast]);
 
-    useEffect(() => {
-        localStorage.setItem('bwd_employees', JSON.stringify(employees));
-    }, [employees]);
-
-    useEffect(() => {
-        localStorage.setItem('bwd_disposed_medicines', JSON.stringify(disposedMedicines));
-    }, [disposedMedicines]);
-
-    // Actions
-    const addMedicine = (med: Omit<MedicineBatch, 'id' | 'addedDate'>) => {
-        const newMed: MedicineBatch = { ...med, id: uuidv4(), addedDate: new Date().toISOString() };
-        setInventory(prev => [...prev, newMed]);
-    };
-
-    const editMedicine = (id: string, updates: Partial<MedicineBatch>) => {
-        setInventory(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
-    };
-
-    const disposeMedicine = (id: string, qty: number) => {
+    const disposeMedicine = useCallback(async (id: string, qty: number) => {
         const batch = inventory.find(m => m.id === id);
         if (!batch) return;
 
-        const disposed: DisposedMedicine = {
-            id: uuidv4(),
-            scientificName: batch.scientificName,
-            brand: batch.brand,
-            milligrams: batch.milligrams,
-            quantity: qty,
-            addedDate: batch.addedDate,
-            expiryDate: batch.expiryDate,
-            disposedDate: new Date().toISOString()
-        };
-        setDisposedMedicines(d => [...d, disposed]);
+        try {
+            const disposed = await db.insertDisposedMedicine({
+                scientificName: batch.scientificName,
+                brand: batch.brand,
+                milligrams: batch.milligrams,
+                quantity: qty,
+                addedDate: batch.addedDate,
+                expiryDate: batch.expiryDate,
+                disposedDate: new Date().toISOString(),
+            });
+            setDisposedMedicines(prev => [disposed, ...prev]);
 
-        setInventory(prev => {
-            return prev.map(m => m.id === id ? { ...m, quantity: Math.max(0, m.quantity - qty) } : m).filter(m => m.quantity > 0);
-        });
-    };
+            const remaining = batch.quantity - qty;
+            if (remaining <= 0) {
+                await db.deleteMedicine(id);
+                setInventory(prev => prev.filter(m => m.id !== id));
+            } else {
+                const updated = await db.updateMedicine(id, { quantity: remaining });
+                setInventory(prev => prev.map(m => m.id === id ? updated : m));
+            }
+            showToast('Medicine disposed successfully!');
+        } catch (err) {
+            console.error('Failed to dispose medicine:', err);
+            showToast('Failed to dispose medicine.', 'error');
+        }
+    }, [inventory, showToast]);
 
-    const addRequest = (req: Omit<EmployeeRequest, 'id' | 'requestDate' | 'status'>) => {
-        const newReq: EmployeeRequest = { ...req, id: uuidv4(), requestDate: new Date().toISOString(), status: 'Pending' };
-        setRequests(prev => [...prev, newReq]);
-    };
+    // ─── Employee Requests ───────────────────────────────────────────────────
 
-    const editRequest = (id: string, updates: Partial<EmployeeRequest>) => {
-        setRequests(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
-    };
+    const addRequest = useCallback(async (req: Omit<EmployeeRequest, 'id' | 'requestDate' | 'status'>) => {
+        try {
+            const newReq = await db.insertRequest(req, 'Pending');
+            setRequests(prev => [newReq, ...prev]);
+            showToast('Request submitted successfully!');
+        } catch (err) {
+            console.error('Failed to add request:', err);
+            showToast('Failed to submit request.', 'error');
+        }
+    }, [showToast]);
 
-    // Reconciles inventory when editing a request
-    const editRequestWithInventory = (id: string, updates: Partial<EmployeeRequest>) => {
-        setRequests(prevReqs => {
-            const existing = prevReqs.find(r => r.id === id);
-            if (!existing) return prevReqs;
+    const editRequest = useCallback(async (id: string, updates: Partial<EmployeeRequest>) => {
+        try {
+            const updated = await db.updateRequest(id, updates);
+            setRequests(prev => prev.map(r => r.id === id ? updated : r));
+            showToast('Request updated successfully!');
+        } catch (err) {
+            console.error('Failed to edit request:', err);
+            showToast('Failed to update request.', 'error');
+        }
+    }, [showToast]);
+
+    // Inventory deduction helper
+    const deductInventoryForItems = useCallback(async (items: { medicineName: string; quantity: number }[]) => {
+        const currentInv = [...inventory];
+        const updates: { id: string; quantity: number }[] = [];
+        const toDelete: string[] = [];
+
+        for (const item of items) {
+            let remaining = item.quantity;
+            const batches = currentInv
+                .filter(b => b.scientificName.toLowerCase() === item.medicineName.toLowerCase() && b.quantity > 0)
+                .sort((a, b) => new Date(a.addedDate).getTime() - new Date(b.addedDate).getTime());
+
+            for (const batch of batches) {
+                if (remaining <= 0) break;
+                const deduction = Math.min(batch.quantity, remaining);
+                batch.quantity -= deduction;
+                remaining -= deduction;
+
+                if (batch.quantity <= 0) {
+                    toDelete.push(batch.id);
+                } else {
+                    updates.push({ id: batch.id, quantity: batch.quantity });
+                }
+            }
+        }
+
+        for (const u of updates) {
+            await db.updateMedicine(u.id, { quantity: u.quantity });
+        }
+        for (const id of toDelete) {
+            await db.deleteMedicine(id);
+        }
+
+        const freshInv = await db.fetchInventory();
+        setInventory(freshInv);
+    }, [inventory]);
+
+    // Restore inventory helper
+    const restoreInventoryForItems = useCallback(async (items: { medicineName: string; quantity: number }[]) => {
+        const currentInv = [...inventory];
+        for (const item of items) {
+            let toRestore = item.quantity;
+            const batches = currentInv
+                .filter(b => b.scientificName.toLowerCase() === item.medicineName.toLowerCase())
+                .sort((a, b) => new Date(b.addedDate).getTime() - new Date(a.addedDate).getTime());
+
+            for (const batch of batches) {
+                if (toRestore <= 0) break;
+                batch.quantity += toRestore;
+                await db.updateMedicine(batch.id, { quantity: batch.quantity });
+                toRestore = 0;
+            }
+        }
+        const freshInv = await db.fetchInventory();
+        setInventory(freshInv);
+    }, [inventory]);
+
+    const editRequestWithInventory = useCallback(async (id: string, updates: Partial<EmployeeRequest>) => {
+        try {
+            const existing = requests.find(r => r.id === id);
+            if (!existing) return;
 
             const oldStatus = existing.status;
             const newStatus = updates.status || oldStatus;
             const oldItems = existing.items;
             const newItems = updates.items || oldItems;
 
-            setInventory(prevInv => {
-                let nextInv = prevInv.map(b => ({ ...b }));
+            if (oldStatus === 'Approved' && newStatus !== 'Approved') {
+                await restoreInventoryForItems(oldItems);
+            } else if (oldStatus !== 'Approved' && newStatus === 'Approved') {
+                await deductInventoryForItems(newItems);
+            } else if (oldStatus === 'Approved' && newStatus === 'Approved' && updates.items) {
+                await restoreInventoryForItems(oldItems);
+                await deductInventoryForItems(newItems);
+            }
 
-                // Case 1: Was Approved, now NOT Approved (Restore all old items)
-                if (oldStatus === 'Approved' && newStatus !== 'Approved') {
-                    for (const item of oldItems) {
-                        let toRestore = item.quantity;
-                        for (const batch of nextInv.filter(b => b.scientificName.toLowerCase() === item.medicineName.toLowerCase()).sort((a, b) => new Date(b.addedDate).getTime() - new Date(a.addedDate).getTime())) {
-                            if (toRestore <= 0) break;
-                            batch.quantity += toRestore;
-                            toRestore = 0;
-                        }
+            const updated = await db.updateRequest(id, updates);
+            setRequests(prev => prev.map(r => r.id === id ? updated : r));
+            showToast('Request updated successfully!');
+        } catch (err) {
+            console.error('Failed to edit request with inventory:', err);
+            showToast('Failed to update request.', 'error');
+        }
+    }, [requests, deductInventoryForItems, restoreInventoryForItems, showToast]);
+
+    const addManualApprovedRequest = useCallback(async (req: Omit<EmployeeRequest, 'id' | 'requestDate' | 'status'>) => {
+        try {
+            await deductInventoryForItems(req.items);
+            const newReq = await db.insertRequest(req, 'Approved');
+            setRequests(prev => [newReq, ...prev]);
+            showToast('Approved request added successfully!');
+        } catch (err) {
+            console.error('Failed to add approved request:', err);
+            showToast('Failed to add request.', 'error');
+        }
+    }, [deductInventoryForItems, showToast]);
+
+    const approveRequest = useCallback(async (requestId: string) => {
+        const req = requests.find(r => r.id === requestId);
+        if (!req || req.status !== 'Pending') return;
+
+        try {
+            await deductInventoryForItems(req.items);
+            const updated = await db.updateRequest(requestId, { status: 'Approved' });
+            setRequests(prev => prev.map(r => r.id === requestId ? updated : r));
+            showToast('Request approved!');
+        } catch (err) {
+            console.error('Failed to approve request:', err);
+            showToast('Failed to approve request.', 'error');
+        }
+    }, [requests, deductInventoryForItems, showToast]);
+
+    const rejectRequest = useCallback(async (requestId: string) => {
+        try {
+            const updated = await db.updateRequest(requestId, { status: 'Rejected' });
+            setRequests(prev => prev.map(r => r.id === requestId ? updated : r));
+            showToast('Request rejected.');
+        } catch (err) {
+            console.error('Failed to reject request:', err);
+            showToast('Failed to reject request.', 'error');
+        }
+    }, [showToast]);
+
+    // ─── Medical Records ─────────────────────────────────────────────────────
+
+    const addMedicalRecord = useCallback(async (record: Omit<MedicalRecord, 'id' | 'date'>) => {
+        try {
+            const newRecord = await db.insertMedicalRecord(record);
+            setMedicalRecords(prev => [newRecord, ...prev]);
+
+            // Deduct inventory for all medicines given
+            if (record.medicineGiven && record.medicineGiven !== 'None' && record.medicineGiven !== '[]') {
+                try {
+                    const items: { medicineName: string; quantity: number }[] = JSON.parse(record.medicineGiven);
+                    if (Array.isArray(items) && items.length > 0) {
+                        await deductInventoryForItems(items);
                     }
-                }
-                // Case 2: Was NOT Approved, now Approved (Deduct all new items)
-                else if (oldStatus !== 'Approved' && newStatus === 'Approved') {
-                    for (const item of newItems) {
-                        let remaining = item.quantity;
-                        for (const batch of nextInv.filter(b => b.scientificName.toLowerCase() === item.medicineName.toLowerCase() && b.quantity > 0).sort((a, b) => new Date(a.addedDate).getTime() - new Date(b.addedDate).getTime())) {
-                            if (remaining <= 0) break;
-                            const deduct = Math.min(batch.quantity, remaining);
-                            batch.quantity -= deduct;
-                            remaining -= deduct;
-                        }
-                    }
-                }
-                // Case 3: Was Approved, staying Approved, but items changed (Restore old, deduct new)
-                else if (oldStatus === 'Approved' && newStatus === 'Approved' && updates.items) {
-                    // Restore old
-                    for (const item of oldItems) {
-                        let toRestore = item.quantity;
-                        for (const batch of nextInv.filter(b => b.scientificName.toLowerCase() === item.medicineName.toLowerCase()).sort((a, b) => new Date(b.addedDate).getTime() - new Date(a.addedDate).getTime())) {
-                            if (toRestore <= 0) break;
-                            batch.quantity += toRestore;
-                            toRestore = 0;
-                        }
-                    }
-                    // Deduct new
-                    for (const item of newItems) {
-                        let remaining = item.quantity;
-                        for (const batch of nextInv.filter(b => b.scientificName.toLowerCase() === item.medicineName.toLowerCase() && b.quantity > 0).sort((a, b) => new Date(a.addedDate).getTime() - new Date(b.addedDate).getTime())) {
-                            if (remaining <= 0) break;
-                            const deduct = Math.min(batch.quantity, remaining);
-                            batch.quantity -= deduct;
-                            remaining -= deduct;
-                        }
-                    }
-                }
-
-                return nextInv;
-            });
-
-            return prevReqs.map(r => r.id === id ? { ...r, ...updates } : r);
-        });
-    };
-
-    // Helper logic to deduct items from inventory FIFO
-    const processInventoryDeduction = (items: RequestItem[]) => {
-        setInventory(prevInv => {
-            let nextInv = [...prevInv];
-            for (const item of items) {
-                let remainingToDeduct = item.quantity;
-                // Get batches for this medicine, oldest first
-                const batches = nextInv
-                    .filter(b => b.scientificName.toLowerCase() === item.medicineName.toLowerCase() && b.quantity > 0)
-                    .sort((a, b) => new Date(a.addedDate).getTime() - new Date(b.addedDate).getTime());
-
-                for (const batch of batches) {
-                    if (remainingToDeduct <= 0) break;
-                    const deduction = Math.min(batch.quantity, remainingToDeduct);
-                    batch.quantity -= deduction;
-                    remainingToDeduct -= deduction;
+                } catch {
+                    // Legacy single-medicine string — deduct 1
+                    await deductInventoryForItems([{ medicineName: record.medicineGiven, quantity: 1 }]);
                 }
             }
-            return nextInv;
-        });
-    };
-
-    const addManualApprovedRequest = (req: Omit<EmployeeRequest, 'id' | 'requestDate' | 'status'>) => {
-        processInventoryDeduction(req.items);
-        const newReq: EmployeeRequest = { ...req, id: uuidv4(), requestDate: new Date().toISOString(), status: 'Approved' };
-        setRequests(prev => [...prev, newReq]);
-    };
-
-    const approveRequest = (requestId: string) => {
-        setRequests(prevReqs => {
-            const copy = [...prevReqs];
-            const reqIndex = copy.findIndex(r => r.id === requestId);
-            if (reqIndex === -1 || copy[reqIndex].status !== 'Pending') return copy;
-
-            const req = copy[reqIndex];
-            processInventoryDeduction(req.items);
-
-            copy[reqIndex] = { ...req, status: 'Approved' };
-            return copy;
-        });
-    };
-
-    const rejectRequest = (requestId: string) => {
-        setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: 'Rejected' } : r));
-    };
-
-    const addMedicalRecord = (record: Omit<MedicalRecord, 'id' | 'date'>) => {
-        const newRecord: MedicalRecord = { ...record, id: uuidv4(), date: new Date().toISOString() };
-        setMedicalRecords(prev => [...prev, newRecord]);
-
-        if (record.medicineGiven && record.medicineGiven !== 'None') {
-            processInventoryDeduction([{ medicineName: record.medicineGiven, quantity: 1 }]);
+            showToast('Medical record added successfully!');
+        } catch (err) {
+            console.error('Failed to add medical record:', err);
+            showToast('Failed to add medical record.', 'error');
         }
-    };
+    }, [deductInventoryForItems, showToast]);
 
-    const editMedicalRecord = (id: string, updates: Partial<MedicalRecord>) => {
-        setMedicalRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
-    };
+    const editMedicalRecord = useCallback(async (id: string, updates: Partial<MedicalRecord>) => {
+        try {
+            const updated = await db.updateMedicalRecord(id, updates);
+            setMedicalRecords(prev => prev.map(r => r.id === id ? updated : r));
+            showToast('Medical record updated successfully!');
+        } catch (err) {
+            console.error('Failed to edit medical record:', err);
+            showToast('Failed to update medical record.', 'error');
+        }
+    }, [showToast]);
 
-    const addEmployee = (emp: Omit<Employee, 'id'>) => {
-        const newEmp: Employee = { ...emp, id: uuidv4() };
-        setEmployees(prev => [...prev, newEmp]);
-    };
+    // ─── Employees ───────────────────────────────────────────────────────────
 
-    const editEmployee = (id: string, updates: Partial<Employee>) => {
-        setEmployees(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
-    };
+    const addEmployee = useCallback(async (emp: Omit<Employee, 'id'>) => {
+        try {
+            const newEmp = await db.insertEmployee(emp);
+            setEmployees(prev => [...prev, newEmp]);
+            showToast('Employee added successfully!');
+        } catch (err) {
+            console.error('Failed to add employee:', err);
+            showToast('Failed to add employee.', 'error');
+        }
+    }, [showToast]);
+
+    const editEmployee = useCallback(async (id: string, updates: Partial<Employee>) => {
+        try {
+            const updated = await db.updateEmployee(id, updates);
+            setEmployees(prev => prev.map(e => e.id === id ? updated : e));
+            showToast('Employee updated successfully!');
+        } catch (err) {
+            console.error('Failed to edit employee:', err);
+            showToast('Failed to update employee.', 'error');
+        }
+    }, [showToast]);
 
     return (
-        <AppContext.Provider value={{ inventory, requests, medicalRecords, employees, disposedMedicines, addMedicine, editMedicine, disposeMedicine, addRequest, addManualApprovedRequest, editRequest, editRequestWithInventory, addMedicalRecord, editMedicalRecord, addEmployee, editEmployee, approveRequest, rejectRequest, modalState, openModal, closeModal }}>
+        <AppContext.Provider value={{
+            inventory, requests, medicalRecords, employees, disposedMedicines, loading,
+            toasts, showToast, dismissToast,
+            addMedicine, editMedicine, disposeMedicine,
+            addRequest, addManualApprovedRequest, editRequest, editRequestWithInventory,
+            addMedicalRecord, editMedicalRecord,
+            addEmployee, editEmployee,
+            approveRequest, rejectRequest,
+            modalState, openModal, closeModal,
+        }}>
             {children}
         </AppContext.Provider>
     );
