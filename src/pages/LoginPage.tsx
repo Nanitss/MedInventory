@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { HeartPulse, LogIn, Eye, EyeOff, ShieldAlert } from 'lucide-react';
+import LiquidEther from '../components/ui/LiquidEther';
 
 interface LoginPageProps {
     onLogin: () => void;
@@ -46,18 +47,30 @@ export const LoginPage = ({ onLogin }: LoginPageProps) => {
     };
 
     return (
-        <div className="min-h-screen flex flex-col bg-gradient-to-br from-brand-blue-dark via-brand-blue to-brand-blue-light relative overflow-hidden">
-            {/* Background decorative elements */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-40 -right-40 w-96 h-96 bg-brand-yellow/10 rounded-full blur-3xl animate-pulse" />
-                <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-brand-yellow/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-white/[0.02] rounded-full" />
-                {/* Grid Pattern */}
-                <div className="absolute inset-0" style={{
-                    backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0)',
-                    backgroundSize: '40px 40px'
-                }} />
+        <div className="min-h-screen flex flex-col bg-brand-blue-dark relative overflow-hidden">
+            {/* Background Liquid Ether Animation */}
+            <div className="absolute inset-0 z-0">
+                <LiquidEther
+                    colors={['#1100fa', '#00ccff', '#acebfb']}
+                    mouseForce={20}
+                    cursorSize={100}
+                    isViscous={true}
+                    viscous={30}
+                    iterationsViscous={32}
+                    iterationsPoisson={32}
+                    resolution={0.5}
+                    isBounce={false}
+                    autoDemo={true}
+                    autoSpeed={0.5}
+                    autoIntensity={2.2}
+                    takeoverDuration={0.25}
+                    autoResumeDelay={3000}
+                    autoRampDuration={0.6}
+                />
             </div>
+            
+            {/* Subtle dark overlay for contrast */}
+            <div className="absolute inset-0 bg-brand-blue-dark/20 z-0 pointer-events-none mix-blend-multiply" />
 
             {/* Header */}
             <header className="relative z-10 pt-8 pb-4 text-center">
