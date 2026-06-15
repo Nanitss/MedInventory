@@ -317,7 +317,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // ─── Medical Records ─────────────────────────────────────────────────────
 
-    const addMedicalRecord = useCallback(async (record: Omit<MedicalRecord, 'id' | 'date'>) => {
+    const addMedicalRecord = useCallback(async (record: Omit<MedicalRecord, 'id' | 'date'> & { date?: string }) => {
         try {
             const newRecord = await db.insertMedicalRecord(record);
             setMedicalRecords(prev => [newRecord, ...prev]);

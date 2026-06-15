@@ -257,18 +257,21 @@ export async function fetchMedicalRecords(): Promise<MedicalRecord[]> {
     return (data || []).map(toMedicalRecord);
 }
 
-export async function insertMedicalRecord(record: Omit<MedicalRecord, 'id' | 'date'>): Promise<MedicalRecord> {
+export async function insertMedicalRecord(record: Omit<MedicalRecord, 'id' | 'date'> & { date?: string }): Promise<MedicalRecord> {
+    const payload: any = {
+        employee_name: record.employeeName,
+        temperature: record.temperature,
+        systolic: record.systolic,
+        diastolic: record.diastolic,
+        pulse_rate: record.pulseRate,
+        remarks: record.remarks,
+        medicine_given: record.medicineGiven,
+    };
+    if (record.date) payload.date = record.date;
+
     const { data, error } = await supabase
         .from('medical_records')
-        .insert({
-            employee_name: record.employeeName,
-            temperature: record.temperature,
-            systolic: record.systolic,
-            diastolic: record.diastolic,
-            pulse_rate: record.pulseRate,
-            remarks: record.remarks,
-            medicine_given: record.medicineGiven,
-        })
+        .insert(payload)
         .select()
         .single();
     if (error) throw error;
@@ -284,6 +287,7 @@ export async function updateMedicalRecord(id: string, updates: Partial<MedicalRe
     if (updates.pulseRate !== undefined) payload.pulse_rate = updates.pulseRate;
     if (updates.remarks !== undefined) payload.remarks = updates.remarks;
     if (updates.medicineGiven !== undefined) payload.medicine_given = updates.medicineGiven;
+    if (updates.date !== undefined) payload.date = updates.date;
 
     const { data, error } = await supabase
         .from('medical_records')

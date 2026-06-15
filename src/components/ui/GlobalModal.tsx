@@ -192,8 +192,13 @@ const displayMedicineGiven = (val: string): string => {
 };
 
 /* --- ADD/EDIT MEDICAL RECORD --- */
+const toLocalDatetimeInput = (date: Date) => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
 const AddMedicalRecordBody = ({ onClose, addMedicalRecord, inventory, employees }: any) => {
-    const [formData, setFormData] = useState({ employeeName: '', temperature: '', systolic: '', diastolic: '', pulseRate: '', remarks: '' });
+    const [formData, setFormData] = useState({ employeeName: '', date: toLocalDatetimeInput(new Date()), temperature: '', systolic: '', diastolic: '', pulseRate: '', remarks: '' });
     const [medicineItems, setMedicineItems] = useState<{ medicineName: string; quantity: number }[]>([]);
     const uniqueMedicines = Array.from(new Set(inventory.filter((m: any) => m.quantity > 0).map((b: any) => b.scientificName))).sort();
 
@@ -209,6 +214,7 @@ const AddMedicalRecordBody = ({ onClose, addMedicalRecord, inventory, employees 
         e.preventDefault();
         addMedicalRecord({
             ...formData,
+            date: new Date(formData.date).toISOString(),
             temperature: formData.temperature ? Number(formData.temperature) : undefined,
             systolic: formData.systolic ? Number(formData.systolic) : undefined,
             diastolic: formData.diastolic ? Number(formData.diastolic) : undefined,
@@ -221,6 +227,10 @@ const AddMedicalRecordBody = ({ onClose, addMedicalRecord, inventory, employees 
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="bg-brand-blue-50 px-6 py-4 border-b border-brand-blue-100 flex items-center justify-between"><h3 className="font-bold text-brand-blue-900 text-lg">Add Medical Record</h3><button type="button" onClick={onClose} className="text-brand-blue-500 hover:text-brand-blue-800 transition-colors"><X size={20} /></button></div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Date &amp; Time</label>
+                    <input required type="datetime-local" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" />
+                </div>
                 <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1">Employee Name</label>
                     <select required value={formData.employeeName} onChange={e => setFormData({ ...formData, employeeName: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm bg-white">
@@ -273,7 +283,7 @@ const AddMedicalRecordBody = ({ onClose, addMedicalRecord, inventory, employees 
 };
 
 const EditMedicalRecordBody = ({ onClose, editMedicalRecord, data, inventory, employees }: any) => {
-    const [formData, setFormData] = useState({ employeeName: data.employeeName, temperature: data.temperature ?? '', systolic: data.systolic ?? '', diastolic: data.diastolic ?? '', pulseRate: data.pulseRate ?? '', remarks: data.remarks });
+    const [formData, setFormData] = useState({ employeeName: data.employeeName, date: data.date ? toLocalDatetimeInput(new Date(data.date)) : toLocalDatetimeInput(new Date()), temperature: data.temperature ?? '', systolic: data.systolic ?? '', diastolic: data.diastolic ?? '', pulseRate: data.pulseRate ?? '', remarks: data.remarks });
     const [medicineItems, setMedicineItems] = useState<{ medicineName: string; quantity: number }[]>(() => parseMedicineGiven(data.medicineGiven));
     const uniqueMedicines = Array.from(new Set(
         inventory.filter((m: any) => m.quantity > 0).map((b: any) => b.scientificName)
@@ -292,6 +302,7 @@ const EditMedicalRecordBody = ({ onClose, editMedicalRecord, data, inventory, em
         e.preventDefault();
         editMedicalRecord(data.id, {
             ...formData,
+            date: new Date(formData.date).toISOString(),
             temperature: formData.temperature !== '' ? Number(formData.temperature) : undefined,
             systolic: formData.systolic !== '' ? Number(formData.systolic) : undefined,
             diastolic: formData.diastolic !== '' ? Number(formData.diastolic) : undefined,
@@ -304,6 +315,10 @@ const EditMedicalRecordBody = ({ onClose, editMedicalRecord, data, inventory, em
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="bg-brand-blue-50 px-6 py-4 border-b border-brand-blue-100 flex items-center justify-between"><h3 className="font-bold text-brand-blue-900 text-lg">Edit Medical Record</h3><button type="button" onClick={onClose} className="text-brand-blue-500 hover:text-brand-blue-800 transition-colors"><X size={20} /></button></div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Date &amp; Time</label>
+                    <input required type="datetime-local" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" />
+                </div>
                 <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1">Employee Name</label>
                     <select required value={formData.employeeName} onChange={e => setFormData({ ...formData, employeeName: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm bg-white">
