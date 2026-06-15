@@ -44,7 +44,9 @@ export interface MedicalRecord {
     systolic?: number; // (optional)
     diastolic?: number; // (optional)
     pulseRate?: string; // (optional)
-    remarks: string;
+    chiefComplaint: string;
+    management?: string;
+    remarks?: string;
     medicineGiven: string;
 }
 

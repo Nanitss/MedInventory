@@ -198,7 +198,7 @@ const toLocalDatetimeInput = (date: Date) => {
 };
 
 const AddMedicalRecordBody = ({ onClose, addMedicalRecord, inventory, employees }: any) => {
-    const [formData, setFormData] = useState({ employeeName: '', date: toLocalDatetimeInput(new Date()), temperature: '', systolic: '', diastolic: '', pulseRate: '', remarks: '' });
+    const [formData, setFormData] = useState({ employeeName: '', date: toLocalDatetimeInput(new Date()), temperature: '', systolic: '', diastolic: '', pulseRate: '', chiefComplaint: '', management: '', remarks: '' });
     const [medicineItems, setMedicineItems] = useState<{ medicineName: string; quantity: number }[]>([]);
     const uniqueMedicines = Array.from(new Set(inventory.filter((m: any) => m.quantity > 0).map((b: any) => b.scientificName))).sort();
 
@@ -219,6 +219,9 @@ const AddMedicalRecordBody = ({ onClose, addMedicalRecord, inventory, employees 
             systolic: formData.systolic ? Number(formData.systolic) : undefined,
             diastolic: formData.diastolic ? Number(formData.diastolic) : undefined,
             pulseRate: formData.pulseRate || undefined,
+            chiefComplaint: formData.chiefComplaint,
+            management: formData.management || undefined,
+            remarks: formData.remarks || undefined,
             medicineGiven: formatMedicineGiven(medicineItems),
         });
         onClose();
@@ -246,7 +249,9 @@ const AddMedicalRecordBody = ({ onClose, addMedicalRecord, inventory, employees 
                     <div><label className="block text-sm font-semibold text-slate-700 mb-1">Systolic (mmHg) <span className="text-slate-400 font-normal">optional</span></label><input type="number" value={formData.systolic} onChange={e => setFormData({ ...formData, systolic: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" placeholder="e.g. 120" /></div>
                     <div><label className="block text-sm font-semibold text-slate-700 mb-1">Diastolic (mmHg) <span className="text-slate-400 font-normal">optional</span></label><input type="number" value={formData.diastolic} onChange={e => setFormData({ ...formData, diastolic: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" placeholder="e.g. 80" /></div>
                 </div>
-                <div><label className="block text-sm font-semibold text-slate-700 mb-1">Remarks / Symptoms</label><textarea value={formData.remarks} onChange={e => setFormData({ ...formData, remarks: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm resize-none" rows={2} placeholder="Describe symptoms..." /></div>
+                <div><label className="block text-sm font-semibold text-slate-700 mb-1">Chief Complaint / Symptoms</label><textarea value={formData.chiefComplaint} onChange={e => setFormData({ ...formData, chiefComplaint: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm resize-none" rows={2} placeholder="Describe chief complaint or symptoms..." /></div>
+                <div><label className="block text-sm font-semibold text-slate-700 mb-1">Management <span className="text-slate-400 font-normal">optional</span></label><textarea value={formData.management} onChange={e => setFormData({ ...formData, management: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm resize-none" rows={2} placeholder="Treatment or management given..." /></div>
+                <div><label className="block text-sm font-semibold text-slate-700 mb-1">Remarks <span className="text-slate-400 font-normal">optional</span></label><textarea value={formData.remarks} onChange={e => setFormData({ ...formData, remarks: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm resize-none" rows={2} placeholder="Additional remarks or notes..." /></div>
 
                 {/* Multi-medicine selector */}
                 <div>
@@ -283,7 +288,7 @@ const AddMedicalRecordBody = ({ onClose, addMedicalRecord, inventory, employees 
 };
 
 const EditMedicalRecordBody = ({ onClose, editMedicalRecord, data, inventory, employees }: any) => {
-    const [formData, setFormData] = useState({ employeeName: data.employeeName, date: data.date ? toLocalDatetimeInput(new Date(data.date)) : toLocalDatetimeInput(new Date()), temperature: data.temperature ?? '', systolic: data.systolic ?? '', diastolic: data.diastolic ?? '', pulseRate: data.pulseRate ?? '', remarks: data.remarks });
+    const [formData, setFormData] = useState({ employeeName: data.employeeName, date: data.date ? toLocalDatetimeInput(new Date(data.date)) : toLocalDatetimeInput(new Date()), temperature: data.temperature ?? '', systolic: data.systolic ?? '', diastolic: data.diastolic ?? '', pulseRate: data.pulseRate ?? '', chiefComplaint: data.chiefComplaint ?? '', management: data.management ?? '', remarks: data.remarks ?? '' });
     const [medicineItems, setMedicineItems] = useState<{ medicineName: string; quantity: number }[]>(() => parseMedicineGiven(data.medicineGiven));
     const uniqueMedicines = Array.from(new Set(
         inventory.filter((m: any) => m.quantity > 0).map((b: any) => b.scientificName)
@@ -307,6 +312,9 @@ const EditMedicalRecordBody = ({ onClose, editMedicalRecord, data, inventory, em
             systolic: formData.systolic !== '' ? Number(formData.systolic) : undefined,
             diastolic: formData.diastolic !== '' ? Number(formData.diastolic) : undefined,
             pulseRate: formData.pulseRate || undefined,
+            chiefComplaint: formData.chiefComplaint,
+            management: formData.management || undefined,
+            remarks: formData.remarks || undefined,
             medicineGiven: formatMedicineGiven(medicineItems),
         });
         onClose();
@@ -334,7 +342,9 @@ const EditMedicalRecordBody = ({ onClose, editMedicalRecord, data, inventory, em
                     <div><label className="block text-sm font-semibold text-slate-700 mb-1">Systolic (mmHg) <span className="text-slate-400 font-normal">optional</span></label><input type="number" value={formData.systolic} onChange={e => setFormData({ ...formData, systolic: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" /></div>
                     <div><label className="block text-sm font-semibold text-slate-700 mb-1">Diastolic (mmHg) <span className="text-slate-400 font-normal">optional</span></label><input type="number" value={formData.diastolic} onChange={e => setFormData({ ...formData, diastolic: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" /></div>
                 </div>
-                <div><label className="block text-sm font-semibold text-slate-700 mb-1">Remarks / Symptoms</label><textarea value={formData.remarks} onChange={e => setFormData({ ...formData, remarks: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm resize-none" rows={2} /></div>
+                <div><label className="block text-sm font-semibold text-slate-700 mb-1">Chief Complaint / Symptoms</label><textarea value={formData.chiefComplaint} onChange={e => setFormData({ ...formData, chiefComplaint: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm resize-none" rows={2} /></div>
+                <div><label className="block text-sm font-semibold text-slate-700 mb-1">Management <span className="text-slate-400 font-normal">optional</span></label><textarea value={formData.management} onChange={e => setFormData({ ...formData, management: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm resize-none" rows={2} /></div>
+                <div><label className="block text-sm font-semibold text-slate-700 mb-1">Remarks <span className="text-slate-400 font-normal">optional</span></label><textarea value={formData.remarks} onChange={e => setFormData({ ...formData, remarks: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm resize-none" rows={2} /></div>
 
                 {/* Multi-medicine selector */}
                 <div>
@@ -649,13 +659,15 @@ const ViewMedicalHistoryBody = ({ onClose, employee, medicalRecords }: any) => {
         .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const handleExportPdf = () => {
-        const headers = ['Date', 'Temp (°C)', 'BP (mmHg)', 'Pulse Rate', 'Medicine Given', 'Remarks'];
+        const headers = ['Date', 'Temp (°C)', 'BP (mmHg)', 'Pulse Rate', 'Medicine Given', 'Chief Complaint', 'Management', 'Remarks'];
         const data = history.map((record: any) => [
             format(new Date(record.date), 'MMM dd, yyyy h:mm a'),
             record.temperature != null ? record.temperature.toString() : '--',
             record.systolic != null && record.diastolic != null ? `${record.systolic}/${record.diastolic}` : '--',
             record.pulseRate ? record.pulseRate.toString() : '--',
             displayMedicineGiven(record.medicineGiven),
+            record.chiefComplaint || 'None',
+            record.management || 'None',
             record.remarks || 'None'
         ]);
         import('../../utils/exportPdf').then(({ exportToPdf }) => {
@@ -689,7 +701,9 @@ const ViewMedicalHistoryBody = ({ onClose, employee, medicalRecords }: any) => {
                                 <div className="bg-sky-50 rounded-lg p-3 border border-sky-100"><div className="flex items-center gap-1.5 text-sky-600 mb-1"><Activity size={14} /><span className="text-xs font-semibold">Pulse</span></div><div className="text-lg font-bold text-sky-900">{record.pulseRate ? `${record.pulseRate} bpm` : '--'}</div></div>
                                 <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-100"><div className="text-xs text-emerald-600 font-semibold mb-1">Meds</div><div className="text-sm text-emerald-900">{displayMedicineGiven(record.medicineGiven)}</div></div>
                             </div>
-                            {record.remarks && <div className="bg-slate-50 rounded-lg p-3 border border-slate-100"><div className="text-xs font-semibold text-slate-500 mb-1">Remarks</div><p className="text-sm">{record.remarks}</p></div>}
+                            {record.chiefComplaint && <div className="bg-slate-50 rounded-lg p-3 border border-slate-100"><div className="text-xs font-semibold text-slate-500 mb-1">Chief Complaint / Symptoms</div><p className="text-sm">{record.chiefComplaint}</p></div>}
+                            {record.management && <div className="bg-slate-50 rounded-lg p-3 border border-slate-100 mt-2"><div className="text-xs font-semibold text-slate-500 mb-1">Management</div><p className="text-sm">{record.management}</p></div>}
+                            {record.remarks && <div className="bg-slate-50 rounded-lg p-3 border border-slate-100 mt-2"><div className="text-xs font-semibold text-slate-500 mb-1">Remarks</div><p className="text-sm">{record.remarks}</p></div>}
                         </div>
                     ))}</div>}
             </div>
@@ -726,7 +740,9 @@ const ViewRemarksBody = ({ onClose, record }: any) => {
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl min-h-[400px] overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
             <div className="bg-brand-blue-50 px-6 py-4 border-b border-brand-blue-100 flex items-center justify-between"><h3 className="font-bold text-brand-blue-900 text-lg">Record Details</h3><button type="button" onClick={onClose} className="text-brand-blue-500 hover:bg-brand-blue-100 rounded-lg p-1 transition-colors"><X size={20} /></button></div>
             <div className="p-6 space-y-6 flex-1 flex flex-col">
-                <div><h4 className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2 border-b pb-2"><FileText size={16} className="text-brand-blue" /> Remarks / Symptoms</h4><p className="text-sm p-3 bg-slate-50 border rounded-lg">{record.remarks || "No remarks provided."}</p></div>
+                <div><h4 className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2 border-b pb-2"><FileText size={16} className="text-brand-blue" /> Chief Complaint / Symptoms</h4><p className="text-sm p-3 bg-slate-50 border rounded-lg">{record.chiefComplaint || "No chief complaint provided."}</p></div>
+                <div><h4 className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2 border-b pb-2"><FileText size={16} className="text-brand-blue" /> Management</h4><p className="text-sm p-3 bg-slate-50 border rounded-lg">{record.management || "No management recorded."}</p></div>
+                <div><h4 className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2 border-b pb-2"><FileText size={16} className="text-brand-blue" /> Remarks</h4><p className="text-sm p-3 bg-slate-50 border rounded-lg">{record.remarks || "No remarks provided."}</p></div>
                 <div><h4 className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2 border-b pb-2"><Pill size={16} className="text-brand-blue" /> Medicine Given</h4><p className="text-sm p-3 bg-slate-50 border rounded-lg">{displayMedicineGiven(record.medicineGiven) || "No medicine given."}</p></div>
                 <div className="flex justify-end pt-4 shrink-0"><Button onClick={onClose}>Close</Button></div>
             </div>
@@ -755,7 +771,7 @@ const ViewGivenMedicinesBody = ({ onClose, employee, context }: any) => {
             date: r.date,
             type: 'Consultation',
             details: displayMedicineGiven(r.medicineGiven),
-            notes: r.remarks || ''
+            notes: r.chiefComplaint || ''
         }))
     ]
         .filter((item: any) => !monthFilter || item.date.startsWith(monthFilter))

@@ -102,7 +102,7 @@ export const EmployeeRecordsTab = () => {
         });
 
     const handleExportPdf = () => {
-        const headers = ['Date', 'Employee Name', 'Temp (°C)', 'BP (mmHg)', 'Pulse Rate', 'Remarks', 'Medicine Given'];
+        const headers = ['Date', 'Employee Name', 'Temp (°C)', 'BP (mmHg)', 'Pulse Rate', 'Chief Complaint', 'Management', 'Remarks', 'Medicine Given'];
         const data = sortedRecords.map(rec => {
             const tempDisplay = rec.temperature != null ? `${rec.temperature}` : '--';
             const bpDisplay = rec.systolic != null && rec.diastolic != null ? `${rec.systolic}/${rec.diastolic}` : '--';
@@ -123,6 +123,8 @@ export const EmployeeRecordsTab = () => {
                 tempDisplay,
                 bpDisplay,
                 rec.pulseRate || '--',
+                rec.chiefComplaint || 'None',
+                rec.management || 'None',
                 rec.remarks || 'None',
                 getMedDisplay(rec.medicineGiven)
             ];

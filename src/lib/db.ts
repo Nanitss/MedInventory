@@ -38,7 +38,9 @@ const toMedicalRecord = (row: any): MedicalRecord => ({
     systolic: row.systolic,
     diastolic: row.diastolic,
     pulseRate: row.pulse_rate,
-    remarks: row.remarks,
+    chiefComplaint: row.chief_complaint ?? '',
+    management: row.management ?? undefined,
+    remarks: row.remarks ?? undefined,
     medicineGiven: row.medicine_given,
 });
 
@@ -264,6 +266,8 @@ export async function insertMedicalRecord(record: Omit<MedicalRecord, 'id' | 'da
         systolic: record.systolic,
         diastolic: record.diastolic,
         pulse_rate: record.pulseRate,
+        chief_complaint: record.chiefComplaint,
+        management: record.management,
         remarks: record.remarks,
         medicine_given: record.medicineGiven,
     };
@@ -285,6 +289,8 @@ export async function updateMedicalRecord(id: string, updates: Partial<MedicalRe
     if (updates.systolic !== undefined) payload.systolic = updates.systolic;
     if (updates.diastolic !== undefined) payload.diastolic = updates.diastolic;
     if (updates.pulseRate !== undefined) payload.pulse_rate = updates.pulseRate;
+    if (updates.chiefComplaint !== undefined) payload.chief_complaint = updates.chiefComplaint;
+    if (updates.management !== undefined) payload.management = updates.management;
     if (updates.remarks !== undefined) payload.remarks = updates.remarks;
     if (updates.medicineGiven !== undefined) payload.medicine_given = updates.medicineGiven;
     if (updates.date !== undefined) payload.date = updates.date;
